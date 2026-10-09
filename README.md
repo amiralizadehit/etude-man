@@ -4,6 +4,10 @@ Turn the page your guitar teacher assigned into a practice session that listens 
 
 **Live app:** https://etude-man.vercel.app
 
+[![Watch the Etude Man demo video](demo/etude-man-demo.jpg)](demo/etude-man-demo.mp4)
+
+*Click the image to watch the demo video.*
+
 ## Why
 
 Apps like Yousician give live feedback, but only on their own curriculum. Etude Man gives that feedback on *your* homework: the exercise from your method book.
