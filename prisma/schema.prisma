@@ -12,17 +12,18 @@ datasource db {
 }
 
 model User {
-  id            String     @id
+  id            String      @id
   name          String
   email         String
-  emailVerified Boolean    @default(false)
+  emailVerified Boolean     @default(false)
   image         String?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
   sessions      Session[]
   accounts      Account[]
   exercises     Exercise[]
   attempts      Attempt[]
+  omrUploads    OmrUpload[]
 
   @@unique([email])
   @@map("user")
@@ -96,6 +97,7 @@ model Exercise {
   parent    Exercise?      @relation("DrillParent", fields: [parentId], references: [id], onDelete: SetNull)
   drills    Exercise[]     @relation("DrillParent")
   attempts  Attempt[]
+  omrUpload OmrUpload?
   createdAt DateTime       @default(now())
 
   @@index([userId])
@@ -134,4 +136,20 @@ model NoteEvent {
 
   @@index([attemptId])
   @@map("note_event")
+}
+
+// A photo sent to Flat OMR, remembered so only its owner can poll it, the user-given name
+// survives until the job is done, and a finished job creates exactly one exercise.
+model OmrUpload {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  flatJobId  String    @unique
+  name       String
+  exerciseId String?   @unique
+  exercise   Exercise? @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+  @@map("omr_upload")
 }
