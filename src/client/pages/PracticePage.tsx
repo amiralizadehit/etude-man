@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 import { fetchExercise, NotFoundError, type Exercise } from "@/lib/api";
+import ScoreView, { type NoteResult } from "@/practice/ScoreView";
+
+const NO_RESULTS: ReadonlyMap<number, NoteResult> = new Map();
 
 type LoadState =
   | { status: "loading" }
@@ -37,5 +40,10 @@ function PracticeContent({ loadState }: { loadState: LoadState }) {
   if (loadState.status === "loading") return <p>Loading exercise…</p>;
   if (loadState.status === "not-found") return <p role="alert">This exercise doesn't exist.</p>;
   if (loadState.status === "error") return <p role="alert">Couldn't load this exercise.</p>;
-  return <h1 className="text-2xl font-semibold">{loadState.exercise.name}</h1>;
+  return (
+    <>
+      <h1 className="text-2xl font-semibold">{loadState.exercise.name}</h1>
+      <ScoreView musicXml={loadState.exercise.musicXml} currentIndex={0} noteResults={NO_RESULTS} onSequenceReady={() => {}} />
+    </>
+  );
 }

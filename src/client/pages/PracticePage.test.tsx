@@ -2,6 +2,10 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
 import PracticePage from "./PracticePage";
 
+vi.mock("@/practice/ScoreView", () => ({
+  default: ({ musicXml }: { musicXml: string }) => <div data-testid="score-view">{musicXml}</div>,
+}));
+
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
@@ -20,7 +24,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-test("loads the exercise from the URL and shows its name", async () => {
+test("loads the exercise from the URL and shows its name and score", async () => {
   const fetchSpy = vi
     .spyOn(globalThis, "fetch")
     .mockResolvedValue(jsonResponse({ exercise: { id: "ex-1", name: "Sample Music Sheet", source: "seed", musicXml: "<x/>" } }));
@@ -28,6 +32,7 @@ test("loads the exercise from the URL and shows its name", async () => {
   expect(screen.getByText("Loading exercise…")).toBeInTheDocument();
   expect(await screen.findByRole("heading", { name: "Sample Music Sheet" })).toBeInTheDocument();
   expect(fetchSpy).toHaveBeenCalledWith("/api/exercises/ex-1");
+  expect(screen.getByTestId("score-view")).toHaveTextContent("<x/>");
 });
 
 test("links back to the exercise list", async () => {
