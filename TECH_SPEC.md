@@ -69,8 +69,9 @@ Read `SCOPE.md` first for product context and priorities. This spec records deci
 - Server creates a Flat OMR job in one call: output MusicXML, auto-start, auto-rotate on. Skip interactive review steps (title comes from the user; guitar transposition is handled by us).
 - The browser polls our API every few seconds; each server call does one Flat long-poll (≤ 25s wait) so requests stay within host time limits. Show progress percent/stage.
 - On done: download the MusicXML export, **normalize it** (see Pitch convention), store it on the exercise with a user-given name.
-- Handle: failed job (show error, offer retry), insufficient credits (402 → clear message), timeouts.
-- Done when: uploading a photo produces a stored exercise that opens in practice mode.
+- Handle: failed job (show error, offer retry), insufficient credits (402 → clear message), timeouts, and Flat refusing OMR for the account (`SCORE_IMPORT_OMR_NOT_SUPPORTED` → clear message pointing to the MusicXML fallback).
+- **MusicXML fallback:** the same form also accepts a `.musicxml`/`.xml` file instead of a photo. The server checks it is a partwise MusicXML score with at least one playable note, normalizes it, and stores it as an exercise (source `upload`) with the user-given name. Added because Flat's OMR job API refuses this account even though its capabilities endpoint lists OMR as available.
+- Done when: uploading a photo (or, as the fallback, a MusicXML file) produces a stored exercise that opens in practice mode.
 
 ### Phase 6 — AI drill (P1)
 - Install: Anthropic SDK.

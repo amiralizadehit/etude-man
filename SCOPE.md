@@ -26,7 +26,7 @@ Mistakes usually aren't about single notes — they're about the *move between t
 
 ### P1 — What makes it special, in build order
 5. Report page: weak transitions ranked by miss rate and hesitation, plus sample history on the demo account
-6. Upload photo → Flat OMR → MusicXML saved as an exercise
+6. Upload photo → Flat OMR → MusicXML saved as an exercise. Fallback: upload a MusicXML file directly (e.g. exported from Flat's web app), for when photo recognition isn't available through the API
 7. AI-generated drill: AI designs a plan from the weak transitions; code validates it and builds the MusicXML; loads into practice mode
 
 ### P2 — Next steps (in the submission note, not built)

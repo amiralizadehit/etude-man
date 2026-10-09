@@ -123,6 +123,7 @@ Playwright: a global setup migrates and seeds the test database (`TEST_DATABASE_
 - `POST /api/omr` sends the photo to Flat in one call (MusicXML output, auto-start, auto-rotate).
 - Upload page polls `GET /api/omr/:jobId` every few seconds and shows the percent and stage.
 - On done: download the export, `normalize()`, save it with the user-given name, open it in practice mode.
+- MusicXML fallback: the file field also accepts `.musicxml`/`.xml`; the browser sends the text to `POST /api/exercises/import`, which validates (partwise score, ≥ 1 playable note), normalizes and saves it, then opens it in practice mode.
 - Errors: failed job (message + retry), 402 (insufficient credits message), timeout.
 
 **Done when:** an uploaded photo becomes an exercise that opens in practice mode.
