@@ -1,6 +1,6 @@
 {
   "framework": "vite",
-  "buildCommand": "bun run build",
+  "buildCommand": "bunx prisma migrate deploy && bun run build",
   "outputDirectory": "dist",
   "bunVersion": "1.x",
   "functions": {
