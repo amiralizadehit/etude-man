@@ -1,5 +1,6 @@
 import { DOMParser } from "@xmldom/xmldom";
-import { normalizeMusicXml } from "./musicxml";
+import { readFileSync } from "node:fs";
+import { listPlayableWrittenMidis, normalizeMusicXml } from "./musicxml";
 
 type Pitch = { step: string; octave: number; alter?: number };
 
@@ -72,4 +73,34 @@ test("keeps the doctype, rests and other elements", () => {
   expect(normalized).toContain("<!DOCTYPE score-partwise");
   expect(normalized).toContain("<rest/>");
   expect(normalized).toContain("<part-name>Guitar</part-name>");
+});
+
+describe("listPlayableWrittenMidis", () => {
+  test("reads written MIDI notes in order, with alterations", () => {
+    const xml = scoreXml({ pitches: [{ step: "C", octave: 5 }, { step: "F", octave: 4, alter: 1 }, { step: "B", octave: 3, alter: -1 }] });
+    expect(listPlayableWrittenMidis(xml)).toEqual([72, 66, 58]);
+  });
+
+  test("skips rests, grace notes and tied continuations; a chord counts once as its top note", () => {
+    const notes = [
+      `<note><pitch><step>C</step><octave>5</octave></pitch><duration>2</duration></note>`,
+      `<note><chord/><pitch><step>C</step><octave>4</octave></pitch><duration>2</duration></note>`,
+      `<note><rest/><duration>1</duration></note>`,
+      `<note><grace/><pitch><step>D</step><octave>5</octave></pitch></note>`,
+      `<note><pitch><step>G</step><octave>4</octave></pitch><duration>1</duration><tie type="start"/></note>`,
+      `<note><pitch><step>G</step><octave>4</octave></pitch><duration>1</duration><tie type="stop"/></note>`,
+      `<note><pitch><step>E</step><octave>3</octave></pitch><duration>1</duration></note>`,
+    ].join("");
+    const xml = scoreXml({ pitches: [] }).replace("</measure>", `${notes}</measure>`);
+    expect(listPlayableWrittenMidis(xml)).toEqual([72, 67, 52]);
+  });
+
+  test("matches the verified book exercise (same sequence the OSMD cursor yields)", () => {
+    const book = readFileSync("assets/Sample Music Sheet.musicxml", "utf8"); // Vitest runs from the project root
+    const sequence = listPlayableWrittenMidis(normalizeMusicXml(book));
+    expect(sequence).toHaveLength(73);
+    expect(sequence.slice(0, 8)).toEqual([72, 60, 76, 74, 72, 71, 69, 67]);
+    expect(sequence.slice(32, 36)).toEqual([60, 52, 53, 55]);
+    expect(sequence.at(-1)).toBe(72);
+  });
 });
