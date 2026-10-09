@@ -6,14 +6,18 @@ Read `SCOPE.md` and `TECH_SPEC.md` first. The specs record decisions; this file 
 ```
 api/index.ts                   Vercel Function entry: imports and exports the Express app
 vercel.json                    build command, output dir, bunVersion, function maxDuration, rewrites
+assets/Sample Music Sheet.musicxml   the verified book exercise (plain treble clef, written pitch)
 prisma/
   schema.prisma
   seed.ts                      reviewer accounts, book exercise, demo sample history
-  fixtures/book-exercise.musicxml
+  seedAccounts.ts              seeded accounts and the book exercise name/path
 src/shared/                    pure logic, no DOM, all unit-tested
-  pitch.ts                     freqToNote, midi ↔ name, written ↔ sounding
-  musicxml.ts                  normalize() to plain written pitch; buildMusicXML(notes)
-  detector.ts                  onset + stable-pitch state machine (frames in, events out)
+  pitch.ts                     frequencyToNote, midiToName, written ↔ sounding, matchesTarget
+  musicxml.ts                  normalizeMusicXml() to plain written pitch; buildMusicXML(notes) (Phase 6)
+  detector.ts                  createNoteDetector(): onset + stable-pitch state machine (frames in, events out)
+  practiceSession.ts           wait-mode state: cursor, green/red results, recorded note events
+  lowNoteStability.ts          flags unstable low-note readings ("Try a different microphone.")
+  attempt.ts                   Zod schema for POST /api/attempts (shared with the client)
   transitions.ts               note events → occurrences → ranked stats
   drill.ts                     Zod plan schema, range checks, deterministic fallback
 src/server/
@@ -23,8 +27,10 @@ src/server/
   auth.ts                      Better Auth instance
   requireUser.ts               session middleware + currentUser(res)
   routes/exercises.ts, attempts.ts, report.ts, omr.ts, drill.ts
-src/client/                    Vite + React
-  pages: Login, ExerciseList, Practice, Report, Upload
+src/client/                    Vite + React, React Router (declarative)
+  pages/                       Login, ExerciseList, Practice (/exercises/:id), Report, Upload
+  practice/                    ScoreView (OSMD), playableSequence, microphone (getUserMedia + pitchy), PracticeSession
+  lib/                         authClient, api
   each component has a sibling *.test.tsx (Vitest + React Testing Library)
 ```
 
@@ -46,21 +52,25 @@ Every MusicXML (seeded file, uploads, drills) goes through `normalize()` before 
 After that, comparison with the mic is always **sounding = written − 12**, and detected pitches are stored as written (+12).
 
 ### Detector as a pure state machine
-`step(state, frame, target) → { state, event? }`, where `frame = { t, rms, hz, clarity }`.
+`createNoteDetector().step(frame, target) → NoteEvent | null`, where `frame = { timeMs, rms, frequencyHz, clarity }` and `target = { writtenMidi, previousWrittenMidi }`. All thresholds live in `DEFAULT_DETECTOR_SETTINGS`; volume and onset values are placeholders to tune with real microphones.
 - Clarity gate (~0.9), median of the last 5 readings.
 - Onset = RMS jump above a threshold; threshold lowered for high-string targets.
 - Stable window: ~50 ms for high-string targets, ~100 ms otherwise.
 - At most one event per pluck (the first stable pitch).
 - Previous target's pitch ignored until the next onset and for ~150 ms after each onset.
+- Each pluck resets the volume history, so a sustained note can't be re-counted against the silence before it; with no history (start, after reset) nothing counts as a pluck.
 - Exactly-one-octave-off counts as correct.
 
 The React page only feeds frames from `requestAnimationFrame`. Tests use synthetic frame sequences: ringing previous note, soft pluck over a ringing note, held wrong note, repeated identical notes.
 
 ### Playable sequence
-After OSMD renders, walk `cursor.Iterator` once from the start. For each step, record `{ cursorStep, midiWritten, gNote }` (top note; MIDI = `halfTone + 12`) or skip it if it is a rest, tied continuation, or grace note. In practice mode, `advance()` calls `cursor.next()` until the next playable step. Note index = position in this sequence. Color notes via `gNote.getSVGGElement()` so the score never re-renders.
+After OSMD renders, walk `cursor.Iterator` once from the start. For each step, record `{ cursorStep, writtenMidi, graphicalNote }` (top note; MIDI = `halfTone + 12`) or skip it if it is a rest, tied continuation, or grace note. In practice mode, `advance()` calls `cursor.next()` until the next playable step. Note index = position in this sequence. Color notes via `graphicalNote.getSVGGElement()` so the score never re-renders. Verified on the book exercise: 73 playable notes, `halfTone + 12` matches the file.
 
 ### Saving attempts
 Events are kept in memory and POSTed once on finish or stop (attempt + events in one transaction). `navigator.sendBeacon` on `pagehide` as a best-effort fallback.
+
+### Unstable low notes
+For targets below written C4, if at least half of the loud frames in the last 1.5 s are unclear or jump between notes, show "Try a different microphone." until the next attempt. A steady wrong note doesn't count.
 
 ### Data
 - Better Auth tables generated by its CLI; Exercise, Attempt, NoteEvent as in the spec.
@@ -128,11 +138,11 @@ Playwright: a global setup migrates and seeds the test database (`TEST_DATABASE_
 ### Finish
 Deploy to production on Vercel, run the seed against the hosted database, confirm demo logins on the production domain, search the code and UI for text not described in the specs, write the submission note.
 
-## Gather before the build (notes only, no code)
-- Flat OMR: exact endpoints, request body, long-poll parameter, export download — from the playground session.
-- How Flat's export of the book page marks the guitar octave (plain treble, treble-8vb, or transpose element).
-- Detector thresholds from mic tests: RMS onset jump and volume threshold per string group.
+## Still to gather
+- Flat OMR: exact endpoints, request body, long-poll parameter, export download — from the playground session (needed for Phase 5).
+- Detector thresholds from real mic tests: RMS onset jump and volume threshold per string group (placeholders in `DEFAULT_DETECTOR_SETTINGS`).
 
-## Verify during the build
-- `halfTone + 12` gives the correct MIDI for one known note in the normalized book file.
-- Exact Better Auth function names for the seed path (password hashing, creating user and account rows).
+## Settled during the build
+- The book exercise export uses a plain treble clef (no 8vb, no transpose): already written pitch.
+- `halfTone + 12` gives the correct MIDI (checked against the book file in Chromium).
+- Better Auth seed path: `auth.$context` → `password.hash`, `internalAdapter.createUser(…, { method: "admin" })`, `createAccount`, `updatePassword`.
