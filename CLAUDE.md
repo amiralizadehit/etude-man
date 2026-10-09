@@ -31,4 +31,5 @@ If they disagree, `SCOPE.md` and `TECH_SPEC.md` win over the plan. Build in the 
 ## Workflow
 - **Commit per topic, as you go.** As soon as a change scoped to one topic works (e.g., Prisma schema, auth config, seed script, login page), commit it. Never batch several topics into one commit or wait until a phase is finished. A phase is normally several commits.
 - Each commit leaves the project building and running, and its message says what that one topic changed.
+- **After a user-facing feature works, delegate end-to-end tests to the `e2e-test-writer` subagent** (`.claude/agents/e2e-test-writer.md`). Give it the feature, the changed files, and what the user should be able to do. Review what it writes, then commit the tests as their own commit. It doesn't edit app code or commit; act on any bugs it reports.
 - **Before each commit, run the `clean-code` skill on the changed code** and apply what's relevant.
