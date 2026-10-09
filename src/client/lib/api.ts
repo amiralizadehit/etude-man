@@ -1,4 +1,6 @@
 import type { SaveAttemptRequest } from "../../shared/attempt";
+import type { ImportMusicXmlRequest } from "../../shared/exerciseImport";
+import type { MusicXmlProblem } from "../../shared/musicxml";
 import type { StartUploadRequest, UploadStatus } from "../../shared/omr";
 import type { TransitionReport } from "../../shared/transitions";
 
@@ -77,6 +79,30 @@ export async function startUpload(upload: StartUploadRequest): Promise<string> {
   }
   const body: { uploadId: string } = await response.json();
   return body.uploadId;
+}
+
+export class InvalidMusicXmlError extends Error {
+  constructor(readonly problem: MusicXmlProblem) {
+    super(`Invalid MusicXML: ${problem}`);
+  }
+}
+
+/** Imports a MusicXML file as a new exercise; returns its id. */
+export async function importMusicXml(request: ImportMusicXmlRequest): Promise<string> {
+  const response = await fetch("/api/exercises/import", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+  if (response.status === 422) {
+    const body: { error: MusicXmlProblem } = await response.json();
+    throw new InvalidMusicXmlError(body.error);
+  }
+  if (!response.ok) {
+    throw new Error(`POST /api/exercises/import failed with ${response.status}`);
+  }
+  const body: { exerciseId: string } = await response.json();
+  return body.exerciseId;
 }
 
 /** One poll; the server waits up to ~20 s for Flat before answering. */

@@ -2,7 +2,14 @@ import { act, render, screen } from "@testing-library/react";
 import { StrictMode } from "react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
-import { InsufficientCreditsError, PhotoRecognitionUnavailableError, pollUpload, startUpload } from "@/lib/api";
+import {
+  importMusicXml,
+  InsufficientCreditsError,
+  InvalidMusicXmlError,
+  PhotoRecognitionUnavailableError,
+  pollUpload,
+  startUpload,
+} from "@/lib/api";
 import { preparePhoto } from "@/upload/preparePhoto";
 import UploadPage, { POLL_INTERVAL_MS } from "./UploadPage";
 
@@ -10,12 +17,14 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   startUpload: vi.fn(),
   pollUpload: vi.fn(),
+  importMusicXml: vi.fn(),
 }));
 vi.mock("@/upload/preparePhoto", () => ({
   preparePhoto: vi.fn(async () => ({ base64: "SMALLJPEG", filename: "photo.jpg" })),
 }));
 
 const PHOTO = new File(["fake image bytes"], "IMG_0042.jpg", { type: "image/jpeg" });
+const MUSICXML = new File(["<score-partwise/>"], "week3.musicxml", { type: "application/vnd.recordare.musicxml+xml" });
 
 // StrictMode like the app (main.tsx): React mounts, unmounts and remounts components in development.
 function renderUploadPage() {
@@ -32,9 +41,9 @@ function renderUploadPage() {
   return userEvent.setup({ advanceTimers: (ms) => vi.advanceTimersByTime(ms) });
 }
 
-async function fillAndSubmit(user: ReturnType<typeof userEvent.setup>, name = "Week 3 scales") {
+async function fillAndSubmit(user: ReturnType<typeof userEvent.setup>, name = "Week 3 scales", file = PHOTO) {
   await user.type(screen.getByLabelText("Exercise name"), name);
-  await user.upload(screen.getByLabelText("Photo of the exercise page"), PHOTO);
+  await user.upload(screen.getByLabelText("Photo or MusicXML file"), file);
   await user.click(screen.getByRole("button", { name: "Upload" }));
 }
 
@@ -42,19 +51,20 @@ beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
   vi.mocked(startUpload).mockReset().mockResolvedValue("upload-1");
   vi.mocked(pollUpload).mockReset();
+  vi.mocked(importMusicXml).mockReset();
 });
 
 afterEach(() => {
   vi.useRealTimers();
 });
 
-test("asks for the exercise name and a photo; Upload waits for a photo", async () => {
+test("asks for the exercise name and a photo or MusicXML file; Upload waits for a file", async () => {
   const user = renderUploadPage();
-  expect(screen.getByRole("heading", { name: "Upload a photo" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Upload an exercise" })).toBeInTheDocument();
   expect(screen.getByLabelText("Exercise name")).toBeRequired();
-  expect(screen.getByLabelText("Photo of the exercise page")).toHaveAttribute("type", "file");
+  expect(screen.getByLabelText("Photo or MusicXML file")).toHaveAttribute("type", "file");
   expect(screen.getByRole("button", { name: "Upload" })).toBeDisabled();
-  await user.upload(screen.getByLabelText("Photo of the exercise page"), PHOTO);
+  await user.upload(screen.getByLabelText("Photo or MusicXML file"), PHOTO);
   expect(screen.getByRole("button", { name: "Upload" })).toBeEnabled();
   expect(screen.getByRole("link", { name: "← Back to exercises" })).toHaveAttribute("href", "/");
 });
@@ -92,7 +102,9 @@ test("explains when the Flat account can't read photos at all", async () => {
   vi.mocked(startUpload).mockRejectedValue(new PhotoRecognitionUnavailableError("503"));
   const user = renderUploadPage();
   await fillAndSubmit(user);
-  expect(await screen.findByRole("alert")).toHaveTextContent("Photo recognition isn't available on the connected Flat account.");
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Photo recognition isn't available on the connected Flat account. You can upload a MusicXML file instead, for example one exported from Flat.",
+  );
 });
 
 test("shows the reason when Flat can't read the photo, and keeps the form for a retry", async () => {
@@ -112,7 +124,7 @@ test("says so when the upload itself fails", async () => {
   vi.mocked(startUpload).mockRejectedValue(new Error("network"));
   const user = renderUploadPage();
   await fillAndSubmit(user);
-  expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't upload the photo. Please try again.");
+  expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't upload this file. Please try again.");
 });
 
 test("keeps polling through a brief network failure", async () => {
@@ -130,5 +142,31 @@ test("gives up after repeated polling failures", async () => {
   const user = renderUploadPage();
   await fillAndSubmit(user);
   await act(() => vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS * 3));
-  expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't upload the photo. Please try again.");
+  expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't upload this file. Please try again.");
+});
+
+describe("uploading a MusicXML file instead of a photo", () => {
+  test("imports it directly, without Flat, and opens the new exercise", async () => {
+    vi.mocked(importMusicXml).mockResolvedValue("ex-xml");
+    const user = renderUploadPage();
+    await fillAndSubmit(user, " Week 3 ", MUSICXML);
+    expect(await screen.findByText("Practice page")).toBeInTheDocument();
+    expect(importMusicXml).toHaveBeenCalledWith({ name: "Week 3", musicXml: "<score-partwise/>" });
+    expect(startUpload).not.toHaveBeenCalled();
+    expect(preparePhoto).not.toHaveBeenCalled();
+  });
+
+  test("says when the file isn't a MusicXML score", async () => {
+    vi.mocked(importMusicXml).mockRejectedValue(new InvalidMusicXmlError("not-musicxml"));
+    const user = renderUploadPage();
+    await fillAndSubmit(user, "Week 3", MUSICXML);
+    expect(await screen.findByRole("alert")).toHaveTextContent("This file isn't a MusicXML score.");
+  });
+
+  test("says when the file has no notes", async () => {
+    vi.mocked(importMusicXml).mockRejectedValue(new InvalidMusicXmlError("no-notes"));
+    const user = renderUploadPage();
+    await fillAndSubmit(user, "Week 3", MUSICXML);
+    expect(await screen.findByRole("alert")).toHaveTextContent("No notes were found in this file.");
+  });
 });

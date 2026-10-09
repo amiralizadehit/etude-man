@@ -62,11 +62,11 @@ test("shows an error when the exercises can't be loaded", async () => {
   expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't load your exercises.");
 });
 
-test("links to the report and to uploading a photo", async () => {
+test("links to the report and to uploading an exercise", async () => {
   mockExercisesResponse(jsonResponse({ exercises: [] }));
   render(<ExerciseListPage userEmail="reviewer1@example.com" />);
   expect(screen.getByRole("link", { name: "Report" })).toHaveAttribute("href", "/report");
-  expect(screen.getByRole("link", { name: "+ Upload a photo" })).toHaveAttribute("href", "/upload");
+  expect(screen.getByRole("link", { name: "+ Upload an exercise" })).toHaveAttribute("href", "/upload");
   await screen.findByText("No exercises yet.");
 });
 

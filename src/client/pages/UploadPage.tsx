@@ -3,7 +3,14 @@ import { Link, useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { InsufficientCreditsError, PhotoRecognitionUnavailableError, pollUpload, startUpload } from "@/lib/api";
+import {
+  importMusicXml,
+  InsufficientCreditsError,
+  InvalidMusicXmlError,
+  PhotoRecognitionUnavailableError,
+  pollUpload,
+  startUpload,
+} from "@/lib/api";
 import { preparePhoto } from "@/upload/preparePhoto";
 
 /** Pause between polls when Flat answers immediately; each poll otherwise waits on the server. */
@@ -14,21 +21,30 @@ const MAX_FAILED_POLLS_IN_A_ROW = 3;
 
 const MESSAGES = {
   insufficientCredits: "Your Flat account doesn't have enough credits to read this photo.",
-  recognitionUnavailable: "Photo recognition isn't available on the connected Flat account.",
-  uploadFailed: "Couldn't upload the photo. Please try again.",
+  recognitionUnavailable:
+    "Photo recognition isn't available on the connected Flat account. You can upload a MusicXML file instead, for example one exported from Flat.",
+  notMusicXml: "This file isn't a MusicXML score.",
+  noNotes: "No notes were found in this file.",
+  uploadFailed: "Couldn't upload this file. Please try again.",
   timedOut: "Reading the photo is taking too long. Please try again.",
 } as const;
 
+type UploadKind = "photo" | "musicxml";
+
 type UploadState =
   | { status: "idle" }
-  | { status: "uploading" }
+  | { status: "uploading"; kind: UploadKind }
   | { status: "reading"; percent: number | null; stage: string | null }
   | { status: "error"; message: string };
+
+export function uploadKindOf(file: File): UploadKind {
+  return /\.(musicxml|xml)$/i.test(file.name) ? "musicxml" : "photo";
+}
 
 export default function UploadPage() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
-  const [photo, setPhoto] = useState<File | null>(null);
+  const [file, setFile] = useState<File | null>(null);
   const [uploadState, setUploadState] = useState<UploadState>({ status: "idle" });
   const isMountedRef = useRef(true);
   // Set on every mount: StrictMode unmounts and remounts in development, and a flag left false
@@ -68,14 +84,20 @@ export default function UploadPage() {
     return null;
   }
 
+  async function readPhotoWithFlat(photo: File): Promise<string | null> {
+    const uploadId = await startUpload({ name: name.trim(), image: await preparePhoto(photo) });
+    setUploadState({ status: "reading", percent: null, stage: null });
+    return waitForExercise(uploadId);
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!photo) return;
-    setUploadState({ status: "uploading" });
+    if (!file) return;
+    const kind = uploadKindOf(file);
+    setUploadState({ status: "uploading", kind });
     try {
-      const uploadId = await startUpload({ name: name.trim(), image: await preparePhoto(photo) });
-      setUploadState({ status: "reading", percent: null, stage: null });
-      const exerciseId = await waitForExercise(uploadId);
+      const exerciseId =
+        kind === "musicxml" ? await importMusicXml({ name: name.trim(), musicXml: await file.text() }) : await readPhotoWithFlat(file);
       if (exerciseId && isMountedRef.current) navigate(`/exercises/${exerciseId}`);
     } catch (error) {
       if (!isMountedRef.current) return;
@@ -88,7 +110,7 @@ export default function UploadPage() {
       <Link to="/" className="text-sm text-muted-foreground hover:underline">
         ← Back to exercises
       </Link>
-      <h1 className="text-2xl font-semibold">Upload a photo</h1>
+      <h1 className="text-2xl font-semibold">Upload an exercise</h1>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
           <Label htmlFor="exercise-name">Exercise name</Label>
@@ -102,17 +124,21 @@ export default function UploadPage() {
           />
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="photo">Photo of the exercise page</Label>
+          <Label htmlFor="exercise-file">Photo or MusicXML file</Label>
           <Input
-            id="photo"
+            id="exercise-file"
             type="file"
-            accept="image/jpeg,image/png"
-            onChange={(event) => setPhoto(event.target.files?.[0] ?? null)}
+            accept="image/jpeg,image/png,.musicxml,.xml"
+            aria-describedby="exercise-file-hint"
+            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
             disabled={isBusy}
           />
+          <p id="exercise-file-hint" className="text-sm text-muted-foreground">
+            A photo of the page is read by Flat. A MusicXML file is imported as is.
+          </p>
         </div>
         <UploadProgress uploadState={uploadState} />
-        <Button type="submit" disabled={isBusy || !photo}>
+        <Button type="submit" disabled={isBusy || !file}>
           {uploadState.status === "error" ? "Try again" : "Upload"}
         </Button>
       </form>
@@ -121,7 +147,9 @@ export default function UploadPage() {
 }
 
 function UploadProgress({ uploadState }: { uploadState: UploadState }) {
-  if (uploadState.status === "uploading") return <p role="status">Uploading photo…</p>;
+  if (uploadState.status === "uploading") {
+    return <p role="status">{uploadState.kind === "musicxml" ? "Importing MusicXML…" : "Uploading photo…"}</p>;
+  }
   if (uploadState.status === "reading") {
     const stage = uploadState.stage ?? "Reading the sheet music";
     return (
@@ -138,6 +166,7 @@ function UploadProgress({ uploadState }: { uploadState: UploadState }) {
 function messageFor(error: unknown): string {
   if (error instanceof InsufficientCreditsError) return MESSAGES.insufficientCredits;
   if (error instanceof PhotoRecognitionUnavailableError) return MESSAGES.recognitionUnavailable;
+  if (error instanceof InvalidMusicXmlError) return error.problem === "no-notes" ? MESSAGES.noNotes : MESSAGES.notMusicXml;
   return MESSAGES.uploadFailed;
 }
 
