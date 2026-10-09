@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { fetchReport } from "@/lib/api";
+import chopinSketch from "../../../assets/chopin.jpg";
 import { midiToName } from "../../shared/pitch";
 import { MIN_OCCURRENCES, type TransitionReport, type TransitionSource, type TransitionStats } from "../../shared/transitions";
 
@@ -20,11 +21,16 @@ export default function ReportPage() {
   }, []);
 
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-4 p-4">
-      <Link to="/" className="text-sm text-muted-foreground hover:underline">
-        ← Back to exercises
-      </Link>
-      <h1 className="text-2xl font-semibold">Weak transitions</h1>
+    <main className="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-6 md:py-10">
+      <header className="flex items-end justify-between gap-6 border-b border-foreground/70">
+        <div className="flex flex-col gap-6 pb-6">
+          <Link to="/" className="back-link">
+            ← Back to exercises
+          </Link>
+          <h1 className="text-5xl md:text-6xl">Weak transitions</h1>
+        </div>
+        <img src={chopinSketch} alt="" className="sketch hidden h-56 w-auto sm:block" />
+      </header>
       <ReportContent loadState={loadState} />
     </main>
   );
@@ -37,7 +43,9 @@ function ReportContent({ loadState }: { loadState: LoadState }) {
   return (
     <>
       {report.includesSample && (
-        <p className="w-fit rounded-md bg-amber-100 px-2 py-1 text-sm text-amber-900">Includes sample practice history</p>
+        <p className="w-fit border border-dashed border-foreground/50 px-2 py-0.5 text-sm text-muted-foreground">
+          Includes sample practice history
+        </p>
       )}
       <OverallAccuracy report={report} />
       {report.transitions.length === 0 ? (
@@ -52,8 +60,9 @@ function ReportContent({ loadState }: { loadState: LoadState }) {
 function OverallAccuracy({ report }: { report: TransitionReport }) {
   if (report.firstTryAccuracy === null) return null;
   return (
-    <p>
-      Overall accuracy: <strong>{formatPercent(report.firstTryAccuracy)}</strong> of notes right on the first try (
+    <p className="max-w-prose text-lg">
+      Overall accuracy: <strong className="font-heading text-4xl font-semibold">{formatPercent(report.firstTryAccuracy)}</strong> of
+      notes right on the first try (
       {report.notesPlayed} notes, {report.attemptCount} {report.attemptCount === 1 ? "attempt" : "attempts"}).
     </p>
   );
@@ -61,30 +70,41 @@ function OverallAccuracy({ report }: { report: TransitionReport }) {
 
 function TransitionTable({ transitions }: { transitions: TransitionStats[] }) {
   return (
-    <table className="w-full text-left text-sm">
-      <thead className="border-b text-muted-foreground">
-        <tr>
-          <th className="py-2 pr-4 font-medium">Transition</th>
-          <th className="py-2 pr-4 font-medium">Missed</th>
-          <th className="py-2 pr-4 font-medium">Median hesitation</th>
-          <th className="py-2 font-medium">Where</th>
-        </tr>
-      </thead>
-      <tbody>
-        {transitions.map((transition) => (
-          <tr key={`${transition.fromMidi}-${transition.toMidi}`} className="border-b">
-            <td className="py-2 pr-4 font-medium">
-              {midiToName(transition.fromMidi)} → {midiToName(transition.toMidi)}
-            </td>
-            <td className="py-2 pr-4">
-              {formatPercent(transition.missRate)} ({transition.missedOccurrences} of {transition.occurrences})
-            </td>
-            <td className="py-2 pr-4">{formatSeconds(transition.medianHesitationMs)}</td>
-            <td className="py-2">{formatSources(transition.sources)}</td>
+    <div className="-mx-4 overflow-x-auto px-4">
+      <table className="w-full min-w-[36rem] text-left text-sm">
+        <thead className="text-muted-foreground">
+          <tr>
+            <th className="py-2 pr-6 font-normal">Transition</th>
+            <th className="py-2 pr-6 font-normal">Missed</th>
+            <th className="py-2 pr-6 font-normal">Median hesitation</th>
+            <th className="py-2 font-normal">Where</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody className="divide-y border-y border-foreground/70">
+          {transitions.map((transition) => (
+            <tr key={`${transition.fromMidi}-${transition.toMidi}`}>
+              <td className="py-4 pr-6 font-heading text-xl font-semibold whitespace-nowrap">
+                {midiToName(transition.fromMidi)} → {midiToName(transition.toMidi)}
+              </td>
+              <td className="py-4 pr-6 tabular-nums whitespace-nowrap">
+                {formatPercent(transition.missRate)} ({transition.missedOccurrences} of {transition.occurrences})
+                <MissRateBar missRate={transition.missRate} />
+              </td>
+              <td className="py-4 pr-6 tabular-nums">{formatSeconds(transition.medianHesitationMs)}</td>
+              <td className="py-4 text-muted-foreground">{formatSources(transition.sources)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function MissRateBar({ missRate }: { missRate: number }) {
+  return (
+    <span aria-hidden="true" className="mt-1.5 block h-1 w-28 bg-muted">
+      <span className="block h-full bg-miss/70" style={{ width: formatPercent(missRate) }} />
+    </span>
   );
 }
 

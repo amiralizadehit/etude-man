@@ -12,6 +12,7 @@ import {
   startUpload,
 } from "@/lib/api";
 import { preparePhoto } from "@/upload/preparePhoto";
+import mozartSketch from "../../../assets/mozart.jpg";
 
 /** Pause between polls when Flat answers immediately; each poll otherwise waits on the server. */
 export const POLL_INTERVAL_MS = 2000;
@@ -106,42 +107,46 @@ export default function UploadPage() {
   }
 
   return (
-    <main className="mx-auto flex max-w-md flex-col gap-4 p-4">
-      <Link to="/" className="text-sm text-muted-foreground hover:underline">
-        ← Back to exercises
-      </Link>
-      <h1 className="text-2xl font-semibold">Upload an exercise</h1>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="exercise-name">Exercise name</Label>
-          <Input
-            id="exercise-name"
-            required
-            maxLength={100}
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            disabled={isBusy}
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="exercise-file">Photo or MusicXML file</Label>
-          <Input
-            id="exercise-file"
-            type="file"
-            accept="image/jpeg,image/png,.musicxml,.xml"
-            aria-describedby="exercise-file-hint"
-            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-            disabled={isBusy}
-          />
-          <p id="exercise-file-hint" className="text-sm text-muted-foreground">
-            A photo of the page is read by Flat. A MusicXML file is imported as is.
-          </p>
-        </div>
-        <UploadProgress uploadState={uploadState} />
-        <Button type="submit" disabled={isBusy || !file}>
-          {uploadState.status === "error" ? "Try again" : "Upload"}
-        </Button>
-      </form>
+    <main className="mx-auto grid max-w-4xl items-end gap-x-16 px-4 py-6 md:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] md:py-10">
+      <div className="flex flex-col gap-6">
+        <Link to="/" className="back-link">
+          ← Back to exercises
+        </Link>
+        <h1 className="text-5xl md:text-6xl">Upload an exercise</h1>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5 border-t border-foreground/70 pt-6">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="exercise-name">Exercise name</Label>
+            <Input
+              id="exercise-name"
+              required
+              maxLength={100}
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              disabled={isBusy}
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="exercise-file">Photo or MusicXML file</Label>
+            <Input
+              id="exercise-file"
+              type="file"
+              accept="image/jpeg,image/png,.musicxml,.xml"
+              aria-describedby="exercise-file-hint"
+              onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+              disabled={isBusy}
+              className="h-auto border-dashed px-3 py-3 file:mr-3 file:h-8 file:border file:border-input file:px-3"
+            />
+            <p id="exercise-file-hint" className="text-sm text-muted-foreground">
+              A photo of the page is read by Flat. A MusicXML file is imported as is.
+            </p>
+          </div>
+          <UploadProgress uploadState={uploadState} />
+          <Button type="submit" disabled={isBusy || !file} size="lg">
+            {uploadState.status === "error" ? "Try again" : "Upload"}
+          </Button>
+        </form>
+      </div>
+      <img src={mozartSketch} alt="" className="sketch hidden max-h-[34rem] w-auto justify-self-center md:block" />
     </main>
   );
 }
@@ -159,7 +164,13 @@ function UploadProgress({ uploadState }: { uploadState: UploadState }) {
       </p>
     );
   }
-  if (uploadState.status === "error") return <p role="alert">{uploadState.message}</p>;
+  if (uploadState.status === "error") {
+    return (
+      <p role="alert" className="border-l-2 border-destructive pl-3 text-sm text-destructive">
+        {uploadState.message}
+      </p>
+    );
+  }
   return null;
 }
 

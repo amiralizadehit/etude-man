@@ -145,21 +145,26 @@ export default function PracticeSession({ exerciseId, musicXml, saveAttempt }: P
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
         {listening === "listening" ? (
-          <Button variant="outline" onClick={() => void finishAttempt(false)}>
+          <Button variant="outline" onClick={() => void finishAttempt(false)} size="lg" className="min-w-28">
             Stop
           </Button>
         ) : (
-          <Button onClick={() => void handleStart()} disabled={!isReady || listening === "starting"}>
+          <Button
+            onClick={() => void handleStart()}
+            disabled={!isReady || listening === "starting"}
+            size="lg"
+            className="min-w-28"
+          >
             Start
           </Button>
         )}
         {devices.length > 0 && (
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex items-center gap-2 text-sm text-muted-foreground">
             Microphone
             <select
-              className="rounded-md border bg-background px-2 py-1"
+              className="h-9 max-w-56 rounded-sm border border-input bg-sheet px-2 text-foreground focus-visible:outline-2 focus-visible:outline-ring"
               value={deviceId ?? ""}
               onChange={(event) => void handleDeviceChange(event.target.value)}
             >
@@ -173,12 +178,14 @@ export default function PracticeSession({ exerciseId, musicXml, saveAttempt }: P
           </label>
         )}
         {listening === "listening" && (
-          <p aria-live="polite" className="w-24 font-mono text-sm tabular-nums">
+          <p aria-live="polite" className="w-36 font-heading text-3xl font-semibold leading-none tabular-nums">
             {readout ? `${readout.noteName} ${formatCents(readout.cents)}` : "—"}
           </p>
         )}
       </div>
-      {listening === "listening" && showMicrophoneHint && <p className="text-sm text-amber-700">Try a different microphone.</p>}
+      {listening === "listening" && showMicrophoneHint && (
+        <p className="w-fit border-l-2 border-foreground pl-3 text-sm">Try a different microphone.</p>
+      )}
       {message && <p role="status">{message}</p>}
       <ScoreView
         musicXml={musicXml}

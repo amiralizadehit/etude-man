@@ -75,8 +75,8 @@ export default function ScoreView({ musicXml, currentIndex, noteResults, onSeque
   }, [status, noteResults]);
 
   return (
-    <div>
-      {status === "loading" && <p>Rendering score…</p>}
+    <div className="border border-border bg-sheet px-2 py-4 shadow-[0_1px_2px_rgb(29_32_37/0.06),0_12px_32px_-16px_rgb(29_32_37/0.25)] sm:px-6 sm:py-8">
+      {status === "loading" && <p className="px-2 text-muted-foreground">Rendering score…</p>}
       {status === "error" && <p role="alert">Couldn't display this score.</p>}
       <div ref={containerRef} data-testid="score" />
     </div>

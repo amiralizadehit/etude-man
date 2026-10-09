@@ -88,7 +88,7 @@ function notesColored(page: Page, color: string): Locator {
 
 /** The live readout of the detected note. */
 function readout(page: Page): Locator {
-  return page.locator('p.font-mono[aria-live="polite"]');
+  return page.locator('p[aria-live="polite"]');
 }
 
 

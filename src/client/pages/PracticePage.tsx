@@ -25,8 +25,8 @@ export default function PracticePage() {
   }, [exerciseId]);
 
   return (
-    <main className="mx-auto flex max-w-5xl flex-col gap-4 p-4">
-      <Link to="/" className="text-sm text-muted-foreground hover:underline">
+    <main className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-6 md:py-10">
+      <Link to="/" className="back-link">
         ← Back to exercises
       </Link>
       <PracticeContent loadState={loadState} />
@@ -40,7 +40,7 @@ function PracticeContent({ loadState }: { loadState: LoadState }) {
   if (loadState.status === "error") return <p role="alert">Couldn't load this exercise.</p>;
   return (
     <>
-      <h1 className="text-2xl font-semibold">{loadState.exercise.name}</h1>
+      <h1 className="text-4xl md:text-5xl">{loadState.exercise.name}</h1>
       <PracticeSession exerciseId={loadState.exercise.id} musicXml={loadState.exercise.musicXml} saveAttempt={saveAttempt} />
     </>
   );
