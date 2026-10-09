@@ -13,5 +13,6 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true
   },
-  "include": ["src/server", "src/shared", "api", "e2e", "prisma", "vite.config.ts", "vitest.config.ts", "playwright.config.ts", "prisma.config.ts"]
+  "include": ["src/server", "src/shared", "api", "e2e", "prisma", "vite.config.ts", "vitest.config.ts", "playwright.config.ts", "prisma.config.ts"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]
 }
