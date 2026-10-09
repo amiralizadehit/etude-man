@@ -21,6 +21,9 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: "list",
+  // The Vite dev server compiles pages on first request; with several workers starting at once
+  // the first render can take longer than the 5 s default.
+  expect: { timeout: 10_000 },
   use: {
     baseURL: WEB_URL,
     trace: "on-first-retry",
