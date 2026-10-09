@@ -65,7 +65,7 @@ Ask me for the password.
 - Every event needs a new pluck (a jump in volume). Within one pluck only the first stable pitch counts, and the previous note's ringing is ignored right after the cursor moves, so one note is never counted twice.
 - **Miss rate** for a transition is the share of its occurrences with at least one miss. **Hesitation** is the time from playing the first note correctly to playing the second one correctly.
 
-More detail lives in [`SCOPE.md`](SCOPE.md), [`TECH_SPEC.md`](TECH_SPEC.md) and [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md).
+More detail lives in [`SCOPE.md`](docs/SCOPE.md), [`TECH_SPEC.md`](docs/TECH_SPEC.md) and [`IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md).
 
 ## Run it locally
 
