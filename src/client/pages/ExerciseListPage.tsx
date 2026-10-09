@@ -27,6 +27,9 @@ export default function ExerciseListPage({ userEmail }: { userEmail: string }) {
       <header className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold">Exercises</h1>
         <div className="flex items-center gap-3 text-sm">
+          <Link to="/report" className="font-medium hover:underline">
+            Report
+          </Link>
           <span className="text-muted-foreground">{userEmail}</span>
           <Button variant="outline" size="sm" onClick={() => authClient.signOut()}>
             Sign out
