@@ -1,9 +1,12 @@
-// Idempotent seed: creates or updates the reviewer accounts (create-or-update by email).
+// Idempotent seed: creates or updates the reviewer accounts (create-or-update by email)
+// and gives every account the verified book exercise.
 // Sign-up is disabled, so accounts are written through Better Auth's internal adapter,
 // with passwords hashed by Better Auth itself so sign-in can verify them.
+import { readFileSync } from "node:fs";
+import { normalizeMusicXml } from "../src/shared/musicxml";
 import { auth } from "../src/server/auth";
 import { prisma } from "../src/server/db";
-import { SEED_ACCOUNTS } from "./seedAccounts";
+import { BOOK_EXERCISE, SEED_ACCOUNTS } from "./seedAccounts";
 
 type AuthContext = Awaited<typeof auth.$context>;
 
@@ -15,7 +18,7 @@ function readSeedPassword(): string {
   return password;
 }
 
-async function upsertAccount(ctx: AuthContext, email: string, name: string, passwordHash: string) {
+async function upsertAccount(ctx: AuthContext, email: string, name: string, passwordHash: string): Promise<string> {
   const existing = await ctx.internalAdapter.findUserByEmail(email);
   const user =
     existing?.user ??
@@ -31,13 +34,29 @@ async function upsertAccount(ctx: AuthContext, email: string, name: string, pass
       password: passwordHash,
     });
   }
+  return user.id;
+}
+
+/** Create-or-update by (user, seed source, name), so re-seeding refreshes the MusicXML. */
+async function upsertBookExercise(userId: string, musicXml: string) {
+  const existing = await prisma.exercise.findFirst({
+    where: { userId, source: "seed", name: BOOK_EXERCISE.name },
+    select: { id: true },
+  });
+  if (existing) {
+    await prisma.exercise.update({ where: { id: existing.id }, data: { musicXml } });
+  } else {
+    await prisma.exercise.create({ data: { userId, name: BOOK_EXERCISE.name, source: "seed", musicXml } });
+  }
 }
 
 async function main() {
   const ctx = await auth.$context;
   const passwordHash = await ctx.password.hash(readSeedPassword());
+  const bookMusicXml = normalizeMusicXml(readFileSync(BOOK_EXERCISE.path, "utf8"));
   for (const { email, name } of SEED_ACCOUNTS) {
-    await upsertAccount(ctx, email, name, passwordHash);
+    const userId = await upsertAccount(ctx, email, name, passwordHash);
+    await upsertBookExercise(userId, bookMusicXml);
     console.log(`Seeded ${email}`);
   }
 }

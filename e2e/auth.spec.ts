@@ -24,7 +24,8 @@ async function expectLoginForm(page: Page) {
 async function expectExerciseList(page: Page, email: string) {
   await expect(page.getByRole("heading", { name: "Exercises" })).toBeVisible();
   await expect(page.getByText(email)).toBeVisible();
-  await expect(page.getByText("No exercises yet.")).toBeVisible();
+  // Every account is seeded with the verified book exercise.
+  await expect(page.getByRole("listitem").filter({ hasText: "Sample Music Sheet" })).toBeVisible();
 }
 
 test.describe("login and exercise list", () => {
@@ -33,7 +34,7 @@ test.describe("login and exercise list", () => {
     await expectLoginForm(page);
   });
 
-  test("seeded reviewer signs in and sees an empty exercise list", async ({ page }) => {
+  test("seeded reviewer signs in and sees their exercise list", async ({ page }) => {
     await page.goto("/");
     await signIn(page, REVIEWER_EMAIL, seedPassword());
     await expectExerciseList(page, REVIEWER_EMAIL);
