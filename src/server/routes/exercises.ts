@@ -1,4 +1,6 @@
 import { Router } from "express";
+import { importMusicXmlSchema } from "../../shared/exerciseImport";
+import { findMusicXmlProblem, normalizeMusicXml } from "../../shared/musicxml";
 import { prisma } from "../db";
 import { currentUser } from "../requireUser";
 
@@ -23,4 +25,27 @@ exercisesRouter.get("/:id", async (req, res) => {
     return;
   }
   res.json({ exercise });
+});
+
+exercisesRouter.post("/import", async (req, res) => {
+  const parsed = importMusicXmlSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid import", issues: parsed.error.issues });
+    return;
+  }
+  const problem = findMusicXmlProblem(parsed.data.musicXml);
+  if (problem) {
+    res.status(422).json({ error: problem });
+    return;
+  }
+  const exercise = await prisma.exercise.create({
+    data: {
+      userId: currentUser(res).id,
+      name: parsed.data.name,
+      source: "upload",
+      musicXml: normalizeMusicXml(parsed.data.musicXml),
+    },
+    select: { id: true },
+  });
+  res.status(201).json({ exerciseId: exercise.id });
 });

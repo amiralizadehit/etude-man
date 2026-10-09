@@ -14,6 +14,8 @@ const app = express();
 app.all("/api/auth/*splat", toNodeHandler(auth));
 // Uploads carry a downscaled photo as base64; parsed here, so the 1 MB parser below skips them.
 app.use("/api/omr", express.json({ limit: "8mb" }));
+// Imported MusicXML files can exceed the default limit below.
+app.use("/api/exercises/import", express.json({ limit: "4mb" }));
 // Attempts carry every note event; 1 MB covers the 5000-event cap with room to spare.
 app.use(express.json({ limit: "1mb" }));
 

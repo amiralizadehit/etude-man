@@ -70,3 +70,20 @@ function playableMidi(note: Element): number | null {
   const alter = Number(text("alter") || 0);
   return (octave + 1) * 12 + STEP_SEMITONES[text("step")] + alter;
 }
+
+export type MusicXmlProblem = "not-musicxml" | "no-notes";
+
+/**
+ * Why a user-supplied file can't become an exercise, or null when it can. Only partwise scores
+ * are accepted: that is what Flat exports and what the playable sequence reads.
+ */
+export function findMusicXmlProblem(musicXml: string): MusicXmlProblem | null {
+  let rootName: string | undefined;
+  try {
+    rootName = new DOMParser().parseFromString(musicXml, "text/xml").documentElement?.nodeName;
+  } catch {
+    return "not-musicxml";
+  }
+  if (rootName !== "score-partwise") return "not-musicxml";
+  return listPlayableWrittenMidis(musicXml).length > 0 ? null : "no-notes";
+}

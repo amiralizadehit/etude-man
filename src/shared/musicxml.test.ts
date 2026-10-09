@@ -1,6 +1,6 @@
 import { DOMParser } from "@xmldom/xmldom";
 import { readFileSync } from "node:fs";
-import { listPlayableWrittenMidis, normalizeMusicXml } from "./musicxml";
+import { findMusicXmlProblem, listPlayableWrittenMidis, normalizeMusicXml } from "./musicxml";
 
 type Pitch = { step: string; octave: number; alter?: number };
 
@@ -102,5 +102,29 @@ describe("listPlayableWrittenMidis", () => {
     expect(sequence.slice(0, 8)).toEqual([72, 60, 76, 74, 72, 71, 69, 67]);
     expect(sequence.slice(32, 36)).toEqual([60, 52, 53, 55]);
     expect(sequence.at(-1)).toBe(72);
+  });
+});
+
+describe("findMusicXmlProblem", () => {
+  test("accepts a partwise score with playable notes", () => {
+    expect(findMusicXmlProblem(scoreXml({ pitches: [{ step: "C", octave: 5 }] }))).toBeNull();
+  });
+
+  test("accepts the verified book exercise", () => {
+    expect(findMusicXmlProblem(readFileSync("assets/Sample Music Sheet.musicxml", "utf8"))).toBeNull();
+  });
+
+  test("rejects text that isn't XML", () => {
+    expect(findMusicXmlProblem("just some notes: C D E")).toBe("not-musicxml");
+  });
+
+  test("rejects XML that isn't a partwise MusicXML score", () => {
+    expect(findMusicXmlProblem("<html><body>hello</body></html>")).toBe("not-musicxml");
+    expect(findMusicXmlProblem("<score-timewise version=\"4.0\"></score-timewise>")).toBe("not-musicxml");
+  });
+
+  test("rejects a score with no playable notes", () => {
+    const onlyRests = scoreXml({ pitches: [] }).replace("</measure>", "<note><rest/><duration>4</duration></note></measure>");
+    expect(findMusicXmlProblem(onlyRests)).toBe("no-notes");
   });
 });
