@@ -4,6 +4,7 @@ import { auth } from "./auth";
 import { requireUser } from "./requireUser";
 import { attemptsRouter } from "./routes/attempts";
 import { exercisesRouter } from "./routes/exercises";
+import { reportRouter } from "./routes/report";
 
 const app = express();
 
@@ -18,5 +19,6 @@ app.get("/api/health", (_req, res) => {
 
 app.use("/api/exercises", requireUser, exercisesRouter);
 app.use("/api/attempts", requireUser, attemptsRouter);
+app.use("/api/report", requireUser, reportRouter);
 
 export default app;
