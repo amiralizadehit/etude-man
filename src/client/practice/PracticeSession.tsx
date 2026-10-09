@@ -17,9 +17,8 @@ import {
   type PracticeState,
 } from "../../shared/practiceSession";
 import { listInputDevices, startMicrophone, type InputDevice, type MicrophoneSession } from "./microphone";
+import { createReadoutSmoother, type Readout } from "./readout";
 import ScoreView from "./ScoreView";
-
-type Readout = { noteName: string; cents: number };
 
 type ListeningState = "idle" | "starting" | "listening";
 
@@ -45,12 +44,13 @@ export default function PracticeSession({ exerciseId, musicXml, saveAttempt }: P
   const microphoneRef = useRef<MicrophoneSession | null>(null);
   const detectorRef = useRef<NoteDetector>(createNoteDetector());
   const stabilityRef = useRef(createLowNoteStabilityMonitor());
+  const readoutSmootherRef = useRef(createReadoutSmoother());
   const attemptRef = useRef<{ startedAt: Date; startMs: number } | null>(null);
 
   const isReady = practice.sequence.length > 0;
 
   function handleFrame(frame: AudioFrame) {
-    const nextReadout = readoutFor(frame);
+    const nextReadout = readoutSmootherRef.current.next(readoutFor(frame), frame.timeMs);
     setReadout((shown) => (isSameReadout(shown, nextReadout) ? shown : nextReadout));
     const target = currentTarget(practiceRef.current);
     const attempt = attemptRef.current;
@@ -77,6 +77,7 @@ export default function PracticeSession({ exerciseId, musicXml, saveAttempt }: P
     setMessage(null);
     detectorRef.current.reset();
     stabilityRef.current.reset();
+    readoutSmootherRef.current.reset();
     setShowMicrophoneHint(false);
     attemptRef.current = { startedAt: new Date(), startMs: performance.now() };
     setListening("starting");
@@ -172,7 +173,7 @@ export default function PracticeSession({ exerciseId, musicXml, saveAttempt }: P
           </label>
         )}
         {listening === "listening" && (
-          <p aria-live="polite" className="font-mono text-sm">
+          <p aria-live="polite" className="w-24 font-mono text-sm tabular-nums">
             {readout ? `${readout.noteName} ${formatCents(readout.cents)}` : "—"}
           </p>
         )}
