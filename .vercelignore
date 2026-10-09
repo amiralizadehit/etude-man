@@ -1,0 +1,10 @@
+# Local secrets and tooling never go up with `vercel deploy` (Vercel skips .env.local, not .env).
+.env
+.env.*
+!.env.example
+.agents
+.claude
+e2e
+test-results
+playwright-report
+blob-report
