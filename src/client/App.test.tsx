@@ -12,6 +12,7 @@ vi.mock("@/pages/ExerciseListPage", () => ({
 }));
 vi.mock("@/pages/PracticePage", () => ({ default: () => <p>Practice page</p> }));
 vi.mock("@/pages/ReportPage", () => ({ default: () => <p>Report page</p> }));
+vi.mock("@/pages/UploadPage", () => ({ default: () => <p>Upload page</p> }));
 
 const useSession = vi.mocked(authClient.useSession);
 const SIGNED_IN = { data: { user: { email: "reviewer1@example.com" } }, isPending: false };
@@ -56,6 +57,12 @@ test("shows the report at /report", () => {
   mockSession(SIGNED_IN);
   renderAt("/report");
   expect(screen.getByText("Report page")).toBeInTheDocument();
+});
+
+test("shows the upload page at /upload", () => {
+  mockSession(SIGNED_IN);
+  renderAt("/upload");
+  expect(screen.getByText("Upload page")).toBeInTheDocument();
 });
 
 test("sends unknown URLs to the exercise list", () => {

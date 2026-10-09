@@ -36,6 +36,9 @@ export default function ExerciseListPage({ userEmail }: { userEmail: string }) {
           </Button>
         </div>
       </header>
+      <Link to="/upload" className="w-fit text-sm font-medium hover:underline">
+        + Upload a photo
+      </Link>
       <ExerciseListContent loadState={loadState} />
     </main>
   );

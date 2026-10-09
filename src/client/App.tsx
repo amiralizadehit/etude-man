@@ -4,6 +4,7 @@ import ExerciseListPage from "@/pages/ExerciseListPage";
 import LoginPage from "@/pages/LoginPage";
 import PracticePage from "@/pages/PracticePage";
 import ReportPage from "@/pages/ReportPage";
+import UploadPage from "@/pages/UploadPage";
 
 export default function App() {
   const { data: session, isPending } = authClient.useSession();
@@ -19,6 +20,7 @@ export default function App() {
       <Route path="/" element={<ExerciseListPage userEmail={session.user.email} />} />
       <Route path="/exercises/:exerciseId" element={<PracticePage />} />
       <Route path="/report" element={<ReportPage />} />
+      <Route path="/upload" element={<UploadPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
