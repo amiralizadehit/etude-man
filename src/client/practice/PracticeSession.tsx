@@ -84,6 +84,16 @@ export default function PracticeSession({ exerciseId, musicXml, saveAttempt }: P
     }
   }
 
+  function attemptRequest(attempt: { startedAt: Date }, completed: boolean): SaveAttemptRequest {
+    return {
+      exerciseId,
+      startedAt: attempt.startedAt.toISOString(),
+      finishedAt: new Date().toISOString(),
+      completed,
+      noteEvents: [...practiceRef.current.noteEvents],
+    };
+  }
+
   async function finishAttempt(completed: boolean) {
     microphoneRef.current?.stop();
     microphoneRef.current = null;
@@ -93,13 +103,7 @@ export default function PracticeSession({ exerciseId, musicXml, saveAttempt }: P
     attemptRef.current = null;
     if (!attempt) return;
     try {
-      await saveAttempt({
-        exerciseId,
-        startedAt: attempt.startedAt.toISOString(),
-        finishedAt: new Date().toISOString(),
-        completed,
-        noteEvents: [...practiceRef.current.noteEvents],
-      });
+      await saveAttempt(attemptRequest(attempt, completed));
       setMessage(completed ? "Finished! Attempt saved." : "Stopped. Attempt saved.");
     } catch {
       setMessage("Couldn't save this attempt.");
@@ -117,6 +121,20 @@ export default function PracticeSession({ exerciseId, musicXml, saveAttempt }: P
   }, [listening, practice]);
 
   useEffect(() => () => microphoneRef.current?.stop(), []);
+
+  // Leaving or closing the page mid-attempt: best-effort save, since a normal request may be cancelled.
+  useEffect(() => {
+    function saveOnPageHide() {
+      const attempt = attemptRef.current;
+      if (!attempt) return;
+      attemptRef.current = null;
+      const body = JSON.stringify(attemptRequest(attempt, false));
+      navigator.sendBeacon("/api/attempts", new Blob([body], { type: "application/json" }));
+    }
+    window.addEventListener("pagehide", saveOnPageHide);
+    return () => window.removeEventListener("pagehide", saveOnPageHide);
+    // attemptRequest only reads props that don't change for a mounted session, and refs.
+  }, []);
 
   return (
     <div className="flex flex-col gap-4">

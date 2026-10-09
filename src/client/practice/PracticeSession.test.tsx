@@ -172,3 +172,31 @@ test("switching microphones while listening restarts on the chosen device", asyn
   await waitFor(() => expect(startMicrophone).toHaveBeenLastCalledWith(expect.objectContaining({ deviceId: "headset" })));
   expect(mic.stop).toHaveBeenCalled();
 });
+
+describe("leaving the page mid-attempt", () => {
+  const sendBeacon = vi.fn(() => true);
+
+  beforeEach(() => {
+    sendBeacon.mockClear();
+    Object.defineProperty(navigator, "sendBeacon", { value: sendBeacon, configurable: true });
+  });
+
+  test("sends the unfinished attempt with sendBeacon", async () => {
+    const { user } = renderSession();
+    await start(user);
+    sendFrame(played(true, 72));
+    window.dispatchEvent(new Event("pagehide"));
+
+    expect(sendBeacon).toHaveBeenCalledTimes(1);
+    const [url, blob] = sendBeacon.mock.calls[0] as unknown as [string, Blob];
+    expect(url).toBe("/api/attempts");
+    expect(blob.type).toBe("application/json");
+    expect(JSON.parse(await blob.text())).toMatchObject({ exerciseId: "ex-1", completed: false, noteEvents: [{ noteIndex: 0 }] });
+  });
+
+  test("sends nothing when no attempt is in progress", () => {
+    renderSession();
+    window.dispatchEvent(new Event("pagehide"));
+    expect(sendBeacon).not.toHaveBeenCalled();
+  });
+});
