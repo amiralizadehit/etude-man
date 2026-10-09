@@ -4,9 +4,7 @@ Turn the page your guitar teacher assigned into a practice session that listens 
 
 **Live app:** https://etude-man.vercel.app
 
-[![Watch the Etude Man demo video](demo/etude-man-demo.jpg)](demo/etude-man-demo.mp4)
-
-*Click the image to watch the demo video.*
+https://github.com/user-attachments/assets/3fbe7d95-469d-42ac-8a17-983b444147b6
 
 ## Why
 
