@@ -22,6 +22,7 @@ If they disagree, `SCOPE.md` and `TECH_SPEC.md` win over the plan. Build in the 
 - `bun run dev`: Express API on :3001 (`src/server/dev.ts`) + Vite on :5173, which proxies `/api` to it
 - `bun run build`: type-check (`tsc -b`) and build the client into `dist/`
 - `bun run typecheck`: type-check only
+- `bun run test:e2e`: Playwright end-to-end tests (`e2e/`). Starts its own API on :3101 and Vite on :5174 against `TEST_DATABASE_URL`, so it never touches the dev servers (:3001/:5173) or the dev database.
 
 ## Vercel wiring
 - `api/index.ts` re-exports the Express app from `src/server/app.ts` (which never calls `listen`).

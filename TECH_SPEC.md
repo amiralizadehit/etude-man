@@ -24,7 +24,7 @@ Read `SCOPE.md` first for product context and priorities. This spec records deci
 | Pitch detection | pitchy (McLeod Pitch Method) |
 | Sheet music extraction | Flat.io OMR Interactive Jobs API |
 | AI | Anthropic SDK (Claude) |
-| Tests | Vitest; React Testing Library (jsdom) for component tests |
+| Tests | Vitest; React Testing Library (jsdom) for component tests; Playwright for end-to-end tests (own ports and test database) |
 | Hosting | Vercel: the React build is served as static files; the Express app runs as a Vercel Function under `/api`. Bun runtime via `bunVersion` in `vercel.json` (fall back to Node like everything else). |
 
 ## Architecture

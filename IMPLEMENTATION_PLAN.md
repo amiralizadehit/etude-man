@@ -88,6 +88,7 @@ Scaffold Vite + React, Tailwind, shadcn, and the Express app with a `/api/health
 ### 2. Auth + seed
 Prisma, Better Auth (email/password, `disableSignUp: true`), Zod. Login page, empty exercise list, `requireUser`.
 Seed (idempotent, upsert by email): hash passwords with Better Auth's own helper and create or update the user and credential-account rows. If that is awkward, use a seed-only auth instance with sign-up enabled and call `signUpEmail` for emails that don't exist yet.
+Playwright: a global setup migrates and seeds the test database (`TEST_DATABASE_URL`) before the run; an end-to-end test logs in as a seeded user.
 **Done when:** a seeded user logs in locally.
 
 ### 3. Practice mode
