@@ -102,6 +102,10 @@ export function createNoteDetector(settings: DetectorSettings = DEFAULT_DETECTOR
   }
 
   function rememberVolume(frame: AudioFrame) {
+    // During a pluck's attack the analysis buffer is only partly filled with sound, so those
+    // frames read quiet. Remembering them would make the note's own full level look like a new
+    // pluck once the refractory period ends, so a pluck is compared with its sustained level only.
+    if (frame.timeMs - lastOnsetMs < settings.onsetRefractoryMs) return;
     volumeHistory.push({ timeMs: frame.timeMs, rms: frame.rms });
     volumeHistory = volumeHistory.filter((entry) => frame.timeMs - entry.timeMs <= settings.onsetLookbackMs);
   }

@@ -162,3 +162,35 @@ test("reset forgets an unfinished pluck", () => {
   const { events } = play(detector, target, [note(52, 400, RINGING)], plucked.endMs);
   expect(events).toEqual([]);
 });
+
+describe("a natural pluck attack (first frames only partly filled with sound)", () => {
+  // The first analysis buffer after a pluck straddles the attack, so its RMS is low;
+  // full level arrives a frame or two later.
+  const attack = (soundingMidi: number): Segment[] => [
+    note(soundingMidi, FRAME_MS, 0.06),
+    note(soundingMidi, FRAME_MS, 0.14),
+    note(soundingMidi, 400, LOUD),
+  ];
+
+  test("counts as one pluck, not two", () => {
+    const { events } = play(createNoteDetector(), firstTarget(WRITTEN_E5), [silence(96), ...attack(64)]);
+    expect(events).toHaveLength(1);
+  });
+
+  test("does not leak a second event onto the next note while it rings", () => {
+    const detector = createNoteDetector();
+    const first = play(detector, firstTarget(WRITTEN_E5), [silence(96), ...attack(64).slice(0, 2), note(64, 60, LOUD)]);
+    expect(first.events).toEqual([expect.objectContaining({ correct: true })]);
+    // The cursor has moved to the next note while the first one is still ringing at full level.
+    const next = play(detector, { writtenMidi: WRITTEN_G4, previousWrittenMidi: WRITTEN_E5 }, [note(64, 400, LOUD)], first.endMs);
+    expect(next.events).toEqual([]);
+  });
+
+  test("still detects a real re-pluck of a ringing note", () => {
+    const detector = createNoteDetector();
+    const first = play(detector, firstTarget(WRITTEN_E4), [silence(96), ...attack(52), note(52, 300, RINGING)]);
+    expect(first.events).toHaveLength(1);
+    const again = play(detector, { writtenMidi: WRITTEN_E4, previousWrittenMidi: WRITTEN_E4 }, attack(52), first.endMs);
+    expect(again.events).toEqual([expect.objectContaining({ correct: true })]);
+  });
+});
