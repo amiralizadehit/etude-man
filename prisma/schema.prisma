@@ -5,6 +5,9 @@
 generator client {
   provider = "prisma-client"
   output   = "../src/server/generated/prisma"
+  // Imports name the real .ts files; with the default ".js", Vercel's file tracing
+  // skips the generated client and the function fails to start.
+  importFileExtension = "ts"
 }
 
 datasource db {
