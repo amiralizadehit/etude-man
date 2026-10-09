@@ -36,17 +36,17 @@ Read `SCOPE.md` first for product context and priorities. This spec records deci
 
 ## Build phases (with installs)
 
-### Phase 1 — Setup + first deploy
+### Phase 1 — Setup
 - Install: Express, Vite + React, Tailwind, shadcn.
-- Placeholder page plus one `/api` health route on Vercel; deploy immediately.
-- Done when: the deployed URL loads.
+- Placeholder page plus one `/api` health route, wired for Vercel but run locally.
+- Done when: the page loads locally and `/api/health` responds.
 
 ### Phase 2 — Auth
 - Install: Prisma, Better Auth, Zod.
 - Email/password only; **sign-up disabled**.
 - Seed script creates reviewer accounts. Must be idempotent (create-or-update by email). Note: with sign-up disabled, the auth library's sign-up call may be blocked from the script — either insert user + credential rows with the library's own password-hashing helper, or construct the auth instance with sign-up enabled inside the seed script only. Verify against current Better Auth docs.
 - Protected API routes resolve the current user from the session.
-- Done when: a seeded user can log in on the deployed URL and reach an empty exercise list.
+- Done when: a seeded user can log in locally and reach an empty exercise list.
 
 ### Phase 3 — Practice mode (core experience, built on the seeded exercise)
 - Install: OpenSheetMusicDisplay, pitchy.
@@ -162,7 +162,7 @@ Transition stats are computed from NoteEvents at read time; no need to store the
 - Anthropic API key
 
 ## Deployment
-- Deploy to Vercel at the end of Phase 1, then after each phase (push to GitHub → production deploy).
+- All phases are developed and verified locally (`localhost` counts as a secure context, so the microphone works without HTTPS). Deploying to Vercel is the last step (push to GitHub → production deploy).
 - Prisma migrations run in the Vercel build command; the seed script is run from a local machine against the hosted database.
 - Demo logins point at the production domain; preview deployments are not used for the demo.
 - HTTPS is required for microphone access (Vercel provides it).

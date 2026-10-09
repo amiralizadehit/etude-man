@@ -80,14 +80,14 @@ Events are kept in memory and POSTed once on finish or stop (attempt + events in
 
 ## Build phases
 
-### 1. Setup + first deploy
-Scaffold Vite + React, Tailwind, shadcn, and the Express app with a `/api/health` route; `api/index.ts` and `vercel.json`; deploy to Vercel.
-**Done when:** the deployed URL loads the page and `/api/health` responds.
+### 1. Setup
+Scaffold Vite + React, Tailwind, shadcn, and the Express app with a `/api/health` route; `api/index.ts` and `vercel.json` (exercised only at the final deploy).
+**Done when:** the page loads locally and `/api/health` responds.
 
 ### 2. Auth + seed
 Prisma, Better Auth (email/password, `disableSignUp: true`), Zod. Login page, empty exercise list, `requireUser`.
 Seed (idempotent, upsert by email): hash passwords with Better Auth's own helper and create or update the user and credential-account rows. If that is awkward, use a seed-only auth instance with sign-up enabled and call `signUpEmail` for emails that don't exist yet.
-**Done when:** a seeded user logs in on the deployed URL.
+**Done when:** a seeded user logs in locally.
 
 ### 3. Practice mode
 - `pitch.ts`, `musicxml.ts`, `detector.ts` with Vitest tests.
