@@ -1,4 +1,5 @@
 import type { SaveAttemptRequest } from "../../shared/attempt";
+import type { TransitionReport } from "../../shared/transitions";
 
 export type ExerciseSummary = {
   id: string;
@@ -41,4 +42,13 @@ export async function saveAttempt(attempt: SaveAttemptRequest): Promise<void> {
   if (!response.ok) {
     throw new Error(`POST /api/attempts failed with ${response.status}`);
   }
+}
+
+export async function fetchReport(): Promise<TransitionReport> {
+  const response = await fetch("/api/report");
+  if (!response.ok) {
+    throw new Error(`GET /api/report failed with ${response.status}`);
+  }
+  const body: { report: TransitionReport } = await response.json();
+  return body.report;
 }
