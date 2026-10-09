@@ -1,6 +1,8 @@
 import express from "express";
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "./auth";
+import { requireUser } from "./requireUser";
+import { exercisesRouter } from "./routes/exercises";
 
 const app = express();
 
@@ -11,5 +13,7 @@ app.use(express.json());
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
 });
+
+app.use("/api/exercises", requireUser, exercisesRouter);
 
 export default app;
