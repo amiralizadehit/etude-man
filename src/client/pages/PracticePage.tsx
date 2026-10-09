@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
-import { fetchExercise, NotFoundError, type Exercise } from "@/lib/api";
-import ScoreView, { type NoteResult } from "@/practice/ScoreView";
-
-const NO_RESULTS: ReadonlyMap<number, NoteResult> = new Map();
+import { fetchExercise, NotFoundError, saveAttempt, type Exercise } from "@/lib/api";
+import PracticeSession from "@/practice/PracticeSession";
 
 type LoadState =
   | { status: "loading" }
@@ -43,7 +41,7 @@ function PracticeContent({ loadState }: { loadState: LoadState }) {
   return (
     <>
       <h1 className="text-2xl font-semibold">{loadState.exercise.name}</h1>
-      <ScoreView musicXml={loadState.exercise.musicXml} currentIndex={0} noteResults={NO_RESULTS} onSequenceReady={() => {}} />
+      <PracticeSession exerciseId={loadState.exercise.id} musicXml={loadState.exercise.musicXml} saveAttempt={saveAttempt} />
     </>
   );
 }

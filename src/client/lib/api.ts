@@ -1,3 +1,5 @@
+import type { SaveAttemptRequest } from "../../shared/attempt";
+
 export type ExerciseSummary = {
   id: string;
   name: string;
@@ -28,4 +30,15 @@ export async function fetchExercise(exerciseId: string): Promise<Exercise> {
   }
   const body: { exercise: Exercise } = await response.json();
   return body.exercise;
+}
+
+export async function saveAttempt(attempt: SaveAttemptRequest): Promise<void> {
+  const response = await fetch("/api/attempts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(attempt),
+  });
+  if (!response.ok) {
+    throw new Error(`POST /api/attempts failed with ${response.status}`);
+  }
 }
