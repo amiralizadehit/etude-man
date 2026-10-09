@@ -24,10 +24,15 @@ vi.mock("./microphone", () => ({
 }));
 
 // The fake detector reports whatever event a test attaches to a frame.
-type TestFrame = AudioFrame & { event?: NoteEvent };
+type TestFrame = AudioFrame & { event?: NoteEvent; unstable?: boolean };
 vi.mock("../../shared/detector", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   createNoteDetector: () => ({ step: (frame: TestFrame) => frame.event ?? null, reset: () => {} }),
+}));
+
+// The fake stability monitor flags frames a test marks as unstable.
+vi.mock("../../shared/lowNoteStability", () => ({
+  createLowNoteStabilityMonitor: () => ({ step: (frame: TestFrame) => frame.unstable === true, reset: () => {} }),
 }));
 
 vi.mock("./ScoreView", async () => {
@@ -171,6 +176,21 @@ test("switching microphones while listening restarts on the chosen device", asyn
   await user.selectOptions(screen.getByRole("combobox"), "headset");
   await waitFor(() => expect(startMicrophone).toHaveBeenLastCalledWith(expect.objectContaining({ deviceId: "headset" })));
   expect(mic.stop).toHaveBeenCalled();
+});
+
+test("suggests another microphone when low notes read unstably, until the next attempt", async () => {
+  const { user } = renderSession();
+  await start(user);
+  expect(screen.queryByText("Try a different microphone.")).not.toBeInTheDocument();
+  sendFrame({ unstable: true });
+  expect(screen.getByText("Try a different microphone.")).toBeInTheDocument();
+  sendFrame({});
+  expect(screen.getByText("Try a different microphone.")).toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Stop" }));
+  await screen.findByRole("status");
+  await start(user);
+  expect(screen.queryByText("Try a different microphone.")).not.toBeInTheDocument();
 });
 
 describe("leaving the page mid-attempt", () => {

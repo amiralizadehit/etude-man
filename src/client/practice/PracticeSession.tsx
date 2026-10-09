@@ -7,6 +7,7 @@ import {
   type AudioFrame,
   type NoteDetector,
 } from "../../shared/detector";
+import { createLowNoteStabilityMonitor } from "../../shared/lowNoteStability";
 import { frequencyToNote, midiToName, soundingToWritten } from "../../shared/pitch";
 import {
   applyNoteEvent,
@@ -37,11 +38,13 @@ export default function PracticeSession({ exerciseId, musicXml, saveAttempt }: P
   const [deviceId, setDeviceId] = useState<string | undefined>(undefined);
   const [readout, setReadout] = useState<Readout | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [showMicrophoneHint, setShowMicrophoneHint] = useState(false);
 
   const practiceRef = useRef(practice);
   practiceRef.current = practice;
   const microphoneRef = useRef<MicrophoneSession | null>(null);
   const detectorRef = useRef<NoteDetector>(createNoteDetector());
+  const stabilityRef = useRef(createLowNoteStabilityMonitor());
   const attemptRef = useRef<{ startedAt: Date; startMs: number } | null>(null);
 
   const isReady = practice.sequence.length > 0;
@@ -52,6 +55,7 @@ export default function PracticeSession({ exerciseId, musicXml, saveAttempt }: P
     const target = currentTarget(practiceRef.current);
     const attempt = attemptRef.current;
     if (!target || !attempt) return;
+    if (stabilityRef.current.step(frame, target.writtenMidi)) setShowMicrophoneHint(true);
     const event = detectorRef.current.step(frame, target);
     if (event) {
       const next = applyNoteEvent(practiceRef.current, event, attempt.startMs);
@@ -72,6 +76,8 @@ export default function PracticeSession({ exerciseId, musicXml, saveAttempt }: P
     setPractice(fresh);
     setMessage(null);
     detectorRef.current.reset();
+    stabilityRef.current.reset();
+    setShowMicrophoneHint(false);
     attemptRef.current = { startedAt: new Date(), startMs: performance.now() };
     setListening("starting");
     try {
@@ -171,6 +177,7 @@ export default function PracticeSession({ exerciseId, musicXml, saveAttempt }: P
           </p>
         )}
       </div>
+      {listening === "listening" && showMicrophoneHint && <p className="text-sm text-amber-700">Try a different microphone.</p>}
       {message && <p role="status">{message}</p>}
       <ScoreView
         musicXml={musicXml}
