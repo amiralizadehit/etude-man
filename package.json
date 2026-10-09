@@ -8,6 +8,7 @@
     "preview": "vite preview",
     "typecheck": "tsc -b",
     "postinstall": "prisma generate",
+    "db:seed": "bun prisma/seed.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {

@@ -5,7 +5,7 @@ if (existsSync(".env")) process.loadEnvFile(".env");
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
-  migrations: { path: "prisma/migrations" },
+  migrations: { path: "prisma/migrations", seed: "bun prisma/seed.ts" },
   // The CLI (migrations) uses the direct connection; the app uses the pooled
   // DATABASE_URL through the driver adapter in src/server/db.ts.
   datasource: { url: env("DIRECT_DATABASE_URL") },
