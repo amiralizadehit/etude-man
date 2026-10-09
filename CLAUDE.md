@@ -22,7 +22,15 @@ If they disagree, `SCOPE.md` and `TECH_SPEC.md` win over the plan. Build in the 
 - `bun run dev`: Express API on :3001 (`src/server/dev.ts`) + Vite on :5173, which proxies `/api` to it
 - `bun run build`: type-check (`tsc -b`) and build the client into `dist/`
 - `bun run typecheck`: type-check only
+- `bun run test`: Vitest unit + component tests (`src/**/*.test.{ts,tsx}`); `bun run test:watch` to watch
+- `bun run db:seed`: idempotent seed (reviewer accounts; password from `SEED_PASSWORD`)
+- `bunx prisma migrate dev --name <name>`: create and apply a migration on the dev database
 - `bun run test:e2e`: Playwright end-to-end tests (`e2e/`). Starts its own API on :3101 and Vite on :5174 against `TEST_DATABASE_URL`, so it never touches the dev servers (:3001/:5173) or the dev database.
+
+## Gotchas
+- Prisma packages are pinned to exactly 7.10.0: npm's `latest` tag for the `prisma` CLI points at an 8.0 release candidate. Check dist-tags before upgrading anything.
+- `auth generate` (Better Auth CLI) overwrites `prisma/schema.prisma` entirely; restore the app models and User relations after running it.
+- Prisma blocks `migrate reset` when run by Claude Code without the user's explicit consent. Don't build workflows on it; the e2e setup uses `migrate deploy` + the idempotent seed instead.
 
 ## Vercel wiring
 - `api/index.ts` re-exports the Express app from `src/server/app.ts` (which never calls `listen`).

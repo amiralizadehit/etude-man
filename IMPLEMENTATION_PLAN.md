@@ -19,7 +19,9 @@ src/shared/                    pure logic, no DOM, all unit-tested
 src/server/
   app.ts                       Express app (API only; exported, never calls listen)
   dev.ts                       local only: app.listen for development
-  auth.ts                      Better Auth instance, requireUser middleware
+  db.ts                        Prisma client (driver adapter, pooled DATABASE_URL)
+  auth.ts                      Better Auth instance
+  requireUser.ts               session middleware + currentUser(res)
   routes/exercises.ts, attempts.ts, report.ts, omr.ts, drill.ts
 src/client/                    Vite + React
   pages: Login, ExerciseList, Practice, Report, Upload
@@ -87,7 +89,7 @@ Scaffold Vite + React, Tailwind, shadcn, and the Express app with a `/api/health
 
 ### 2. Auth + seed
 Prisma, Better Auth (email/password, `disableSignUp: true`), Zod. Login page, empty exercise list, `requireUser`.
-Seed (idempotent, upsert by email): hash passwords with Better Auth's own helper and create or update the user and credential-account rows. If that is awkward, use a seed-only auth instance with sign-up enabled and call `signUpEmail` for emails that don't exist yet.
+Seed (idempotent, upsert by email): through `auth.$context`, hash with `ctx.password.hash` and create or update the user and credential-account rows via `ctx.internalAdapter`. Accounts live in `prisma/seedAccounts.ts`; their shared password comes from `SEED_PASSWORD`.
 Playwright: a global setup migrates and seeds the test database (`TEST_DATABASE_URL`) before the run; an end-to-end test logs in as a seeded user.
 **Done when:** a seeded user logs in locally.
 
