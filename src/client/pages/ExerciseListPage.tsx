@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { fetchExercises, type ExerciseSummary } from "@/lib/api";
 import { authClient } from "@/lib/authClient";
@@ -44,8 +45,10 @@ function ExerciseListContent({ loadState }: { loadState: LoadState }) {
   return (
     <ul className="flex flex-col divide-y rounded-md border">
       {loadState.exercises.map((exercise) => (
-        <li key={exercise.id} className="p-3">
-          {exercise.name}
+        <li key={exercise.id}>
+          <Link to={`/exercises/${exercise.id}`} className="block p-3 hover:bg-muted">
+            {exercise.name}
+          </Link>
         </li>
       ))}
     </ul>

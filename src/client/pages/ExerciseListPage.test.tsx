@@ -1,4 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { render as renderWithoutRouter, screen } from "@testing-library/react";
+import type { ReactElement } from "react";
+import { MemoryRouter } from "react-router";
 import userEvent from "@testing-library/user-event";
 import ExerciseListPage from "./ExerciseListPage";
 import { authClient } from "@/lib/authClient";
@@ -6,6 +8,10 @@ import { authClient } from "@/lib/authClient";
 vi.mock("@/lib/authClient", () => ({
   authClient: { signOut: vi.fn() },
 }));
+
+function render(ui: ReactElement) {
+  return renderWithoutRouter(<MemoryRouter>{ui}</MemoryRouter>);
+}
 
 function mockExercisesResponse(response: Response) {
   return vi.spyOn(globalThis, "fetch").mockResolvedValue(response);
@@ -34,7 +40,7 @@ test("shows a loading message, then an empty state when there are no exercises",
   expect(fetchSpy).toHaveBeenCalledWith("/api/exercises");
 });
 
-test("lists the user's exercises by name", async () => {
+test("lists the user's exercises by name, each linking to its practice page", async () => {
   mockExercisesResponse(
     jsonResponse({
       exercises: [
@@ -46,6 +52,8 @@ test("lists the user's exercises by name", async () => {
   render(<ExerciseListPage userEmail="reviewer1@example.com" />);
   const items = await screen.findAllByRole("listitem");
   expect(items.map((item) => item.textContent)).toEqual(["Book page 12", "Scales"]);
+  expect(screen.getByRole("link", { name: "Book page 12" })).toHaveAttribute("href", "/exercises/a");
+  expect(screen.getByRole("link", { name: "Scales" })).toHaveAttribute("href", "/exercises/b");
 });
 
 test("shows an error when the exercises can't be loaded", async () => {

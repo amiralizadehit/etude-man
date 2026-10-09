@@ -1,6 +1,8 @@
+import { Navigate, Route, Routes } from "react-router";
 import { authClient } from "@/lib/authClient";
 import ExerciseListPage from "@/pages/ExerciseListPage";
 import LoginPage from "@/pages/LoginPage";
+import PracticePage from "@/pages/PracticePage";
 
 export default function App() {
   const { data: session, isPending } = authClient.useSession();
@@ -11,5 +13,11 @@ export default function App() {
   if (!session) {
     return <LoginPage />;
   }
-  return <ExerciseListPage userEmail={session.user.email} />;
+  return (
+    <Routes>
+      <Route path="/" element={<ExerciseListPage userEmail={session.user.email} />} />
+      <Route path="/exercises/:exerciseId" element={<PracticePage />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
 }
