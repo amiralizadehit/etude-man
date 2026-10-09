@@ -27,5 +27,6 @@ If they disagree, `SCOPE.md` and `TECH_SPEC.md` win over the plan. Build in the 
 - `vercel.json` rewrites `/api/*` to that function and everything else to `index.html`.
 
 ## Workflow
-- Small, reviewable commits after each working step.
+- **Commit per topic, as you go.** As soon as a change scoped to one topic works (e.g., Prisma schema, auth config, seed script, login page), commit it. Never batch several topics into one commit or wait until a phase is finished. A phase is normally several commits.
+- Each commit leaves the project building and running, and its message says what that one topic changed.
 - **Before each commit, run the `clean-code` skill on the changed code** and apply what's relevant.
