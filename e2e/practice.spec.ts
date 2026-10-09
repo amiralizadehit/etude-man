@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { test as base, expect, type Locator, type Page } from "@playwright/test";
+import { seedPassword } from "./fixtures/seedPassword";
 import { pluckTrack, steadyTone, writeWavFixture, type Pluck } from "./fixtures/audio";
 
 // reviewer1 belongs to auth.spec.ts and demo gets sample history later, so practice uses reviewer2.
@@ -12,12 +13,6 @@ const MISSED_COLOR = "#dc2626";
 
 /** Guitar sounds an octave below written pitch. */
 const OCTAVE = 12;
-
-function seedPassword(): string {
-  const password = process.env.SEED_PASSWORD;
-  if (!password) throw new Error("SEED_PASSWORD is not set (see .env.example)");
-  return password;
-}
 
 type PracticeFixtures = {
   /** Absolute path of the WAV the fake microphone plays (looped); null for no microphone input. */

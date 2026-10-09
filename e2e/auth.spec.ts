@@ -1,12 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
+import { seedPassword } from "./fixtures/seedPassword";
 
 const REVIEWER_EMAIL = "reviewer1@example.com";
-
-function seedPassword(): string {
-  const password = process.env.SEED_PASSWORD;
-  if (!password) throw new Error("SEED_PASSWORD is not set (see .env.example)");
-  return password;
-}
 
 async function signIn(page: Page, email: string, password: string) {
   await page.getByLabel("Email").fill(email);
