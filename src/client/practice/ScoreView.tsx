@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { OpenSheetMusicDisplay, type GraphicalNote } from "opensheetmusicdisplay";
+import type { NoteResult } from "../../shared/practiceSession";
 import { buildPlayableSequence, type PlayableNote, type ScoreCursor } from "./playableSequence";
 
-export type NoteResult = "correct" | "missed";
+export type { NoteResult };
 
 const RESULT_COLORS: Record<NoteResult, string> = {
   correct: "#16a34a",
