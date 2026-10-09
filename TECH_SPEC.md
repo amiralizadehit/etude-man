@@ -24,7 +24,7 @@ Read `SCOPE.md` first for product context and priorities. This spec records deci
 | Pitch detection | pitchy (McLeod Pitch Method) |
 | Sheet music extraction | Flat.io OMR Interactive Jobs API |
 | AI | Anthropic SDK (Claude) |
-| Tests | Vitest |
+| Tests | Vitest; React Testing Library (jsdom) for component tests |
 | Hosting | Vercel: the React build is served as static files; the Express app runs as a Vercel Function under `/api`. Bun runtime via `bunVersion` in `vercel.json` (fall back to Node like everything else). |
 
 ## Architecture
@@ -78,8 +78,9 @@ Read `SCOPE.md` first for product context and priorities. This spec records deci
 - Done when: a drill generated from the report opens in practice mode.
 
 ### Tests (alongside the phases above)
-- Install: Vitest as soon as the first pure-logic module exists (during Phase 3).
-- Test pure logic only: frequency → note, MusicXML normalization, note matching (tolerance, octave handling), onset and stable-note rules, transition statistics, drill validation.
+- Install: Vitest and React Testing Library with the first React component beyond the placeholder (Phase 2, login page).
+- **Component tests:** every React component gets tests written alongside it, in the same commit. Test what the user sees and does (rendered text, form input, loading and error states, navigation), with API calls mocked. Browser-only pieces that can't run in jsdom (OSMD rendering, microphone, Web Audio) are mocked at their boundary; their logic is covered by the pure-logic tests.
+- **Pure-logic tests:** frequency → note, MusicXML normalization, note matching (tolerance, octave handling), onset and stable-note rules, transition statistics, drill validation.
 
 ## Music handling
 

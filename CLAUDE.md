@@ -15,6 +15,7 @@ If they disagree, `SCOPE.md` and `TECH_SPEC.md` win over the plan. Build in the 
 - Secrets (Flat token, Anthropic key, DB URLs, auth secret) stay server-side in environment variables. The browser talks only to our API.
 - All stored and generated pitches are written pitch; the only conversion is sounding = written − 12 at mic comparison (see `TECH_SPEC.md`, Pitch convention).
 - Pure logic lives in `src/shared/` and gets Vitest tests.
+- **Every React component gets component tests** (Vitest + React Testing Library), written with the component and committed together with it. Don't add a component without its tests. Test user-visible behavior; mock API calls and browser-only APIs (OSMD, microphone, Web Audio).
 - Deploy target is Vercel (static React build + Express as a function under `/api`).
 
 ## Commands

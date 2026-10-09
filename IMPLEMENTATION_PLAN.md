@@ -23,6 +23,7 @@ src/server/
   routes/exercises.ts, attempts.ts, report.ts, omr.ts, drill.ts
 src/client/                    Vite + React
   pages: Login, ExerciseList, Practice, Report, Upload
+  each component has a sibling *.test.tsx (Vitest + React Testing Library)
 ```
 
 - **Dev:** Vite dev server proxies `/api` to Express running from `src/server/dev.ts`.
