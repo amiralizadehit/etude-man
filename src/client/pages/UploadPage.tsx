@@ -30,7 +30,14 @@ export default function UploadPage() {
   const [photo, setPhoto] = useState<File | null>(null);
   const [uploadState, setUploadState] = useState<UploadState>({ status: "idle" });
   const isMountedRef = useRef(true);
-  useEffect(() => () => void (isMountedRef.current = false), []);
+  // Set on every mount: StrictMode unmounts and remounts in development, and a flag left false
+  // made the page ignore every response (stuck on "Uploading photo…").
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const isBusy = uploadState.status === "uploading" || uploadState.status === "reading";
 

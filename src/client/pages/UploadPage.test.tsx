@@ -1,4 +1,5 @@
 import { act, render, screen } from "@testing-library/react";
+import { StrictMode } from "react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { InsufficientCreditsError, pollUpload, startUpload } from "@/lib/api";
@@ -16,14 +17,17 @@ vi.mock("@/upload/preparePhoto", () => ({
 
 const PHOTO = new File(["fake image bytes"], "IMG_0042.jpg", { type: "image/jpeg" });
 
+// StrictMode like the app (main.tsx): React mounts, unmounts and remounts components in development.
 function renderUploadPage() {
   render(
-    <MemoryRouter initialEntries={["/upload"]}>
-      <Routes>
-        <Route path="/upload" element={<UploadPage />} />
-        <Route path="/exercises/:exerciseId" element={<p>Practice page</p>} />
-      </Routes>
-    </MemoryRouter>,
+    <StrictMode>
+      <MemoryRouter initialEntries={["/upload"]}>
+        <Routes>
+          <Route path="/upload" element={<UploadPage />} />
+          <Route path="/exercises/:exerciseId" element={<p>Practice page</p>} />
+        </Routes>
+      </MemoryRouter>
+    </StrictMode>,
   );
   return userEvent.setup({ advanceTimers: (ms) => vi.advanceTimersByTime(ms) });
 }
