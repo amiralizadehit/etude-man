@@ -2,7 +2,7 @@ import { Router } from "express";
 import { listPlayableWrittenMidis, normalizeMusicXml } from "../../shared/musicxml";
 import { startUploadSchema, type UploadStatus } from "../../shared/omr";
 import { prisma } from "../db";
-import { FlatApiError, type FlatClient, type FlatJob } from "../flat";
+import { FlatApiError, OMR_NOT_SUPPORTED_CODE, type FlatClient, type FlatJob } from "../flat";
 import { failedStatus, NO_NOTES_FOUND, processingStatus } from "../omrStatus";
 import { currentUser } from "../requireUser";
 
@@ -24,11 +24,15 @@ export function createOmrRouter(getFlat: () => FlatClient) {
     try {
       job = await getFlat().createJob(parsed.data.image);
     } catch (error) {
+      console.error(error);
       if (error instanceof FlatApiError && error.status === 402) {
         res.status(402).json({ error: "insufficient_credits" });
         return;
       }
-      console.error(error);
+      if (error instanceof FlatApiError && error.code === OMR_NOT_SUPPORTED_CODE) {
+        res.status(503).json({ error: "omr_not_available" });
+        return;
+      }
       res.status(502).json({ error: "flat_unavailable" });
       return;
     }

@@ -17,11 +17,16 @@ export type FlatJob = {
 export class FlatApiError extends Error {
   constructor(
     readonly status: number,
+    /** Flat's machine-readable error code, e.g. SCORE_IMPORT_OMR_NOT_SUPPORTED, when it sent one. */
+    readonly code: string | null,
     message: string,
   ) {
     super(message);
   }
 }
+
+/** Flat answers this when the account or token can't use photo recognition. */
+export const OMR_NOT_SUPPORTED_CODE = "SCORE_IMPORT_OMR_NOT_SUPPORTED";
 
 export type FlatClient = ReturnType<typeof createFlatClient>;
 
@@ -32,7 +37,8 @@ export function createFlatClient(token: string, fetchImpl: typeof fetch = fetch)
       headers: { Authorization: `Bearer ${token}`, ...(init.body ? { "Content-Type": "application/json" } : {}) },
     });
     if (!response.ok) {
-      throw new FlatApiError(response.status, `Flat ${init.method ?? "GET"} ${path} failed with ${response.status}: ${await response.text()}`);
+      const body = await response.text();
+      throw new FlatApiError(response.status, errorCodeOf(body), `Flat ${init.method ?? "GET"} ${path} failed with ${response.status}: ${body}`);
     }
     return response;
   }
@@ -72,6 +78,16 @@ export function createFlatClient(token: string, fetchImpl: typeof fetch = fetch)
       return response.text();
     },
   };
+}
+
+function errorCodeOf(body: string): string | null {
+  try {
+    const parsed: unknown = JSON.parse(body);
+    const code = (parsed as { code?: unknown }).code;
+    return typeof code === "string" ? code : null;
+  } catch {
+    return null;
+  }
 }
 
 export function flatClientFromEnv(): FlatClient {

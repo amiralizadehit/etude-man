@@ -56,6 +56,9 @@ export async function fetchReport(): Promise<TransitionReport> {
 
 export class InsufficientCreditsError extends Error {}
 
+/** The connected Flat account can't read photos (OMR isn't enabled for it). */
+export class PhotoRecognitionUnavailableError extends Error {}
+
 /** Starts reading a photo with Flat; returns the upload to poll. */
 export async function startUpload(upload: StartUploadRequest): Promise<string> {
   const response = await fetch("/api/omr", {
@@ -65,6 +68,9 @@ export async function startUpload(upload: StartUploadRequest): Promise<string> {
   });
   if (response.status === 402) {
     throw new InsufficientCreditsError("Not enough Flat credits");
+  }
+  if (response.status === 503 && (await response.json()).error === "omr_not_available") {
+    throw new PhotoRecognitionUnavailableError("Flat OMR not available");
   }
   if (!response.ok) {
     throw new Error(`POST /api/omr failed with ${response.status}`);

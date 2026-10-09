@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { InsufficientCreditsError, pollUpload, startUpload } from "@/lib/api";
+import { InsufficientCreditsError, PhotoRecognitionUnavailableError, pollUpload, startUpload } from "@/lib/api";
 import { preparePhoto } from "@/upload/preparePhoto";
 
 /** Pause between polls when Flat answers immediately; each poll otherwise waits on the server. */
@@ -14,6 +14,7 @@ const MAX_FAILED_POLLS_IN_A_ROW = 3;
 
 const MESSAGES = {
   insufficientCredits: "Your Flat account doesn't have enough credits to read this photo.",
+  recognitionUnavailable: "Photo recognition isn't available on the connected Flat account.",
   uploadFailed: "Couldn't upload the photo. Please try again.",
   timedOut: "Reading the photo is taking too long. Please try again.",
 } as const;
@@ -78,8 +79,7 @@ export default function UploadPage() {
       if (exerciseId && isMountedRef.current) navigate(`/exercises/${exerciseId}`);
     } catch (error) {
       if (!isMountedRef.current) return;
-      const message = error instanceof InsufficientCreditsError ? MESSAGES.insufficientCredits : MESSAGES.uploadFailed;
-      setUploadState({ status: "error", message });
+      setUploadState({ status: "error", message: messageFor(error) });
     }
   }
 
@@ -133,6 +133,12 @@ function UploadProgress({ uploadState }: { uploadState: UploadState }) {
   }
   if (uploadState.status === "error") return <p role="alert">{uploadState.message}</p>;
   return null;
+}
+
+function messageFor(error: unknown): string {
+  if (error instanceof InsufficientCreditsError) return MESSAGES.insufficientCredits;
+  if (error instanceof PhotoRecognitionUnavailableError) return MESSAGES.recognitionUnavailable;
+  return MESSAGES.uploadFailed;
 }
 
 function delay(milliseconds: number) {

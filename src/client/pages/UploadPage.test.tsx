@@ -2,7 +2,7 @@ import { act, render, screen } from "@testing-library/react";
 import { StrictMode } from "react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
-import { InsufficientCreditsError, pollUpload, startUpload } from "@/lib/api";
+import { InsufficientCreditsError, PhotoRecognitionUnavailableError, pollUpload, startUpload } from "@/lib/api";
 import { preparePhoto } from "@/upload/preparePhoto";
 import UploadPage, { POLL_INTERVAL_MS } from "./UploadPage";
 
@@ -86,6 +86,13 @@ test("explains when the Flat account is out of credits, and offers a retry", asy
   await fillAndSubmit(user);
   expect(await screen.findByRole("alert")).toHaveTextContent("Your Flat account doesn't have enough credits to read this photo.");
   expect(screen.getByRole("button", { name: "Try again" })).toBeEnabled();
+});
+
+test("explains when the Flat account can't read photos at all", async () => {
+  vi.mocked(startUpload).mockRejectedValue(new PhotoRecognitionUnavailableError("503"));
+  const user = renderUploadPage();
+  await fillAndSubmit(user);
+  expect(await screen.findByRole("alert")).toHaveTextContent("Photo recognition isn't available on the connected Flat account.");
 });
 
 test("shows the reason when Flat can't read the photo, and keeps the form for a retry", async () => {

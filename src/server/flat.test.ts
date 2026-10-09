@@ -1,5 +1,5 @@
 import { expect, test, vi } from "vitest";
-import { createFlatClient, FlatApiError } from "./flat";
+import { createFlatClient, FlatApiError, OMR_NOT_SUPPORTED_CODE } from "./flat";
 
 function fakeFetch(response: Response) {
   return vi.fn<typeof fetch>(async () => response);
@@ -46,11 +46,29 @@ test("downloads the MusicXML export as text", async () => {
   expect(fetchSpy.mock.calls[0][0]).toBe("https://api.flat.io/v2/omr/jobs/job-1/exports/musicxml");
 });
 
-test("keeps Flat's HTTP status on errors, e.g. 402 for insufficient credits", async () => {
+test("keeps Flat's HTTP status and error code on errors, e.g. 402 for insufficient credits", async () => {
   const fetchSpy = fakeFetch(json({ code: "INSUFFICIENT_CREDITS" }, 402));
   const error = await createFlatClient("t", fetchSpy)
     .createJob({ base64: "AAAA", filename: "page.jpg" })
     .catch((caught: unknown) => caught);
   expect(error).toBeInstanceOf(FlatApiError);
   expect((error as FlatApiError).status).toBe(402);
+  expect((error as FlatApiError).code).toBe("INSUFFICIENT_CREDITS");
+});
+
+test("recognizes Flat's answer when the account can't use photo recognition", async () => {
+  const fetchSpy = fakeFetch(
+    json({ message: "PDF or image imports are not supported. Please use a MusicXML or MIDI file instead.", code: OMR_NOT_SUPPORTED_CODE }, 400),
+  );
+  const error = (await createFlatClient("t", fetchSpy)
+    .createJob({ base64: "AAAA", filename: "page.jpg" })
+    .catch((caught: unknown) => caught)) as FlatApiError;
+  expect(error.status).toBe(400);
+  expect(error.code).toBe(OMR_NOT_SUPPORTED_CODE);
+});
+
+test("has no error code when Flat's error body isn't JSON", async () => {
+  const fetchSpy = fakeFetch(new Response("Bad gateway", { status: 502 }));
+  const error = (await createFlatClient("t", fetchSpy).getJob("job-1", 0).catch((caught: unknown) => caught)) as FlatApiError;
+  expect(error.code).toBeNull();
 });
