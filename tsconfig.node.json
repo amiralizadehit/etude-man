@@ -15,5 +15,7 @@
     "noUnusedParameters": true
   },
   "include": ["src/server", "src/shared", "api", "e2e", "prisma", "vite.config.ts", "vitest.config.ts", "playwright.config.ts", "prisma.config.ts"],
-  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]
+  // Client and shared tests use Vitest globals and are type-checked by tsconfig.app.json.
+  // Server tests import from "vitest" explicitly and are checked here.
+  "exclude": ["src/client/**/*.test.ts", "src/client/**/*.test.tsx", "src/shared/**/*.test.ts"]
 }
