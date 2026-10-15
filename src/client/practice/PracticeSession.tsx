@@ -43,6 +43,7 @@ export default function PracticeSession({ exerciseId, musicXml, saveAttempt }: P
   const practiceRef = useRef(practice);
   practiceRef.current = practice;
   const microphoneRef = useRef<MicrophoneSession | null>(null);
+  const isMountedRef = useRef(false);
   const detectorRef = useRef<NoteDetector>(createNoteDetector());
   const stabilityRef = useRef(createLowNoteStabilityMonitor());
   const readoutSmootherRef = useRef(createReadoutSmoother());
@@ -69,7 +70,13 @@ export default function PracticeSession({ exerciseId, musicXml, saveAttempt }: P
     microphoneRef.current?.stop();
     // Cleared first: if the new device fails, nothing should stop the old session a second time.
     microphoneRef.current = null;
-    microphoneRef.current = await startMicrophone({ deviceId: selectedDeviceId, onFrame: handleFrame });
+    const session = await startMicrophone({ deviceId: selectedDeviceId, onFrame: handleFrame });
+    // The page may have closed while the browser was acquiring the device; nothing else would stop it.
+    if (!isMountedRef.current) {
+      session.stop();
+      return;
+    }
+    microphoneRef.current = session;
     await refreshDevices();
   }
 
@@ -159,7 +166,13 @@ export default function PracticeSession({ exerciseId, musicXml, saveAttempt }: P
     if (listening === "listening" && isFinished(practice)) void finishAttempt(true);
   }, [listening, practice]);
 
-  useEffect(() => () => microphoneRef.current?.stop(), []);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      microphoneRef.current?.stop();
+    };
+  }, []);
 
   // Leaving or closing the page mid-attempt: best-effort save, since a normal request may be cancelled.
   useEffect(() => {
