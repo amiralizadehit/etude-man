@@ -41,3 +41,9 @@ If they disagree, `docs/SCOPE.md` and `docs/TECH_SPEC.md` win over the plan. Bui
 - Each commit leaves the project building and running, and its message says what that one topic changed.
 - **After a user-facing feature works, delegate end-to-end tests to the `e2e-test-writer` subagent** (`.claude/agents/e2e-test-writer.md`). Give it the feature, the changed files, and what the user should be able to do. Review what it writes, then commit the tests as their own commit. It doesn't edit app code or commit; act on any bugs it reports.
 - **Before each commit, run the `clean-code` skill on the changed code** and apply what's relevant.
+
+## Branching
+- `main` is the released state; `develop` collects finished work. Never commit directly to either.
+- Each feature or change gets its own branch off an up-to-date `develop` (e.g., `feature/drill`, `docs/...`). Commit per topic inside it, as above.
+- When it's ready, push the branch and open a PR **into `develop`**.
+- Never merge a PR or enable auto-merge: the user reviews and merges every PR.
