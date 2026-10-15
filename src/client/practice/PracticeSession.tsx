@@ -146,6 +146,8 @@ export default function PracticeSession({ exerciseId, musicXml, saveAttempt }: P
     try {
       await listen(selectedDeviceId);
     } catch {
+      // Back to Default, so the next Start doesn't ask for the missing device again.
+      setDeviceId(undefined);
       await finishAttempt(false, "That microphone isn't available.");
     } finally {
       setIsSwitchingDevice(false);
