@@ -12,6 +12,8 @@ const mic = vi.hoisted(() => ({
   stop: vi.fn(),
 }));
 
+const detectorReset = vi.hoisted(() => vi.fn());
+
 vi.mock("./microphone", () => ({
   startMicrophone: vi.fn(async ({ onFrame }: { onFrame: (frame: AudioFrame) => void }) => {
     mic.onFrame = onFrame;
@@ -27,7 +29,7 @@ vi.mock("./microphone", () => ({
 type TestFrame = AudioFrame & { event?: NoteEvent; unstable?: boolean };
 vi.mock("../../shared/detector", async (importOriginal) => ({
   ...(await importOriginal<object>()),
-  createNoteDetector: () => ({ step: (frame: TestFrame) => frame.event ?? null, reset: () => {} }),
+  createNoteDetector: () => ({ step: (frame: TestFrame) => frame.event ?? null, reset: detectorReset }),
 }));
 
 // The fake stability monitor flags frames a test marks as unstable.
@@ -77,6 +79,7 @@ async function start(user: ReturnType<typeof userEvent.setup>) {
 beforeEach(() => {
   mic.onFrame = null;
   mic.stop.mockClear();
+  detectorReset.mockClear();
   vi.mocked(startMicrophone).mockClear();
 });
 
@@ -176,6 +179,46 @@ test("switching microphones while listening restarts on the chosen device", asyn
   await user.selectOptions(screen.getByRole("combobox"), "headset");
   await waitFor(() => expect(startMicrophone).toHaveBeenLastCalledWith(expect.objectContaining({ deviceId: "headset" })));
   expect(mic.stop).toHaveBeenCalled();
+});
+
+test("switching microphones starts note detection fresh on the new device", async () => {
+  const { user } = renderSession();
+  await start(user);
+  detectorReset.mockClear();
+  await user.selectOptions(screen.getByRole("combobox"), "headset");
+  expect(detectorReset).toHaveBeenCalledTimes(1);
+});
+
+test("locks the microphone picker and Stop until the new microphone is ready", async () => {
+  const { user } = renderSession();
+  await start(user);
+  let finishSwitch!: () => void;
+  vi.mocked(startMicrophone).mockImplementationOnce(async ({ onFrame }) => {
+    await new Promise<void>((resolve) => (finishSwitch = resolve));
+    mic.onFrame = onFrame;
+    return { stop: mic.stop };
+  });
+
+  await user.selectOptions(screen.getByRole("combobox"), "headset");
+  expect(screen.getByRole("combobox")).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Stop" })).toBeDisabled();
+
+  await act(async () => finishSwitch());
+  expect(screen.getByRole("combobox")).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Stop" })).toBeEnabled();
+});
+
+test("ends and saves the attempt when the chosen microphone isn't available", async () => {
+  const { user, saveAttempt } = renderSession();
+  await start(user);
+  sendFrame(played(true, 72));
+  vi.mocked(startMicrophone).mockRejectedValueOnce(new DOMException("unplugged", "NotFoundError"));
+  await user.selectOptions(screen.getByRole("combobox"), "headset");
+
+  expect(await screen.findByRole("status")).toHaveTextContent("That microphone isn't available. Stopped. Attempt saved.");
+  expect(saveAttempt).toHaveBeenCalledWith(expect.objectContaining({ completed: false, noteEvents: [expect.anything()] }));
+  expect(screen.getByRole("button", { name: "Start" })).toBeEnabled();
+  expect(mic.stop).toHaveBeenCalledTimes(1); // the old microphone, once; never stopped again
 });
 
 test("suggests another microphone when low notes read unstably, until the next attempt", async () => {

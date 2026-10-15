@@ -38,6 +38,7 @@ export default function PracticeSession({ exerciseId, musicXml, saveAttempt }: P
   const [readout, setReadout] = useState<Readout | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [showMicrophoneHint, setShowMicrophoneHint] = useState(false);
+  const [isSwitchingDevice, setIsSwitchingDevice] = useState(false);
 
   const practiceRef = useRef(practice);
   practiceRef.current = practice;
@@ -66,8 +67,17 @@ export default function PracticeSession({ exerciseId, musicXml, saveAttempt }: P
 
   async function listen(selectedDeviceId: string | undefined) {
     microphoneRef.current?.stop();
+    // Cleared first: if the new device fails, nothing should stop the old session a second time.
+    microphoneRef.current = null;
     microphoneRef.current = await startMicrophone({ deviceId: selectedDeviceId, onFrame: handleFrame });
     setDevices(await listInputDevices());
+  }
+
+  /** Volume and pitch history belong to one input device; a new device starts from nothing. */
+  function resetDetection() {
+    detectorRef.current.reset();
+    stabilityRef.current.reset();
+    readoutSmootherRef.current.reset();
   }
 
   async function handleStart() {
@@ -75,9 +85,7 @@ export default function PracticeSession({ exerciseId, musicXml, saveAttempt }: P
     practiceRef.current = fresh;
     setPractice(fresh);
     setMessage(null);
-    detectorRef.current.reset();
-    stabilityRef.current.reset();
-    readoutSmootherRef.current.reset();
+    resetDetection();
     setShowMicrophoneHint(false);
     attemptRef.current = { startedAt: new Date(), startMs: performance.now() };
     setListening("starting");
@@ -101,7 +109,8 @@ export default function PracticeSession({ exerciseId, musicXml, saveAttempt }: P
     };
   }
 
-  async function finishAttempt(completed: boolean) {
+  /** `reason`, if given, is shown before the save result. */
+  async function finishAttempt(completed: boolean, reason?: string) {
     microphoneRef.current?.stop();
     microphoneRef.current = null;
     setListening("idle");
@@ -109,17 +118,29 @@ export default function PracticeSession({ exerciseId, musicXml, saveAttempt }: P
     const attempt = attemptRef.current;
     attemptRef.current = null;
     if (!attempt) return;
+    const prefix = reason ? `${reason} ` : "";
     try {
       await saveAttempt(attemptRequest(attempt, completed));
-      setMessage(completed ? "Finished! Attempt saved." : "Stopped. Attempt saved.");
+      setMessage(prefix + (completed ? "Finished! Attempt saved." : "Stopped. Attempt saved."));
     } catch {
-      setMessage("Couldn't save this attempt.");
+      setMessage(prefix + "Couldn't save this attempt.");
     }
   }
 
   async function handleDeviceChange(selectedDeviceId: string) {
     setDeviceId(selectedDeviceId);
-    if (listening === "listening") await listen(selectedDeviceId);
+    if (listening !== "listening") return;
+    resetDetection();
+    // Picker and Stop are locked until the switch settles: an overlapping switch, or stopping
+    // before the new device answers, would leave a microphone running.
+    setIsSwitchingDevice(true);
+    try {
+      await listen(selectedDeviceId);
+    } catch {
+      await finishAttempt(false, "That microphone isn't available.");
+    } finally {
+      setIsSwitchingDevice(false);
+    }
   }
 
   useEffect(() => {
@@ -147,7 +168,13 @@ export default function PracticeSession({ exerciseId, musicXml, saveAttempt }: P
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
         {listening === "listening" ? (
-          <Button variant="outline" onClick={() => void finishAttempt(false)} size="lg" className="min-w-28">
+          <Button
+            variant="outline"
+            onClick={() => void finishAttempt(false)}
+            disabled={isSwitchingDevice}
+            size="lg"
+            className="min-w-28"
+          >
             Stop
           </Button>
         ) : (
@@ -166,6 +193,7 @@ export default function PracticeSession({ exerciseId, musicXml, saveAttempt }: P
             <select
               className="h-9 max-w-56 rounded-sm border border-input bg-sheet px-2 text-foreground focus-visible:outline-2 focus-visible:outline-ring"
               value={deviceId ?? ""}
+              disabled={isSwitchingDevice}
               onChange={(event) => void handleDeviceChange(event.target.value)}
             >
               <option value="">Default</option>
