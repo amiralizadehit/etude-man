@@ -2,7 +2,7 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { AudioFrame, NoteEvent } from "../../shared/detector";
 import type { NoteResult } from "../../shared/practiceSession";
-import { startMicrophone } from "./microphone";
+import { listInputDevices, startMicrophone } from "./microphone";
 import PracticeSession from "./PracticeSession";
 
 const SEQUENCE = [72, 60]; // written C5, C4
@@ -219,6 +219,19 @@ test("ends and saves the attempt when the chosen microphone isn't available", as
   expect(saveAttempt).toHaveBeenCalledWith(expect.objectContaining({ completed: false, noteEvents: [expect.anything()] }));
   expect(screen.getByRole("button", { name: "Start" })).toBeEnabled();
   expect(mic.stop).toHaveBeenCalledTimes(1); // the old microphone, once; never stopped again
+});
+
+test("keeps listening on the new microphone when the device list can't be refreshed", async () => {
+  const { user, saveAttempt } = renderSession();
+  await start(user);
+  vi.mocked(listInputDevices).mockRejectedValueOnce(new DOMException("inactive", "InvalidStateError"));
+  await user.selectOptions(screen.getByRole("combobox"), "headset");
+
+  await waitFor(() => expect(screen.getByRole("button", { name: "Stop" })).toBeEnabled());
+  expect(screen.getByRole("option", { name: "Headset" })).toBeInTheDocument();
+  expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  expect(saveAttempt).not.toHaveBeenCalled();
+  expect(mic.stop).toHaveBeenCalledTimes(1); // only the old microphone
 });
 
 test("suggests another microphone when low notes read unstably, until the next attempt", async () => {
