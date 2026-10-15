@@ -234,6 +234,18 @@ test("keeps listening on the new microphone when the device list can't be refres
   expect(mic.stop).toHaveBeenCalledTimes(1); // only the old microphone
 });
 
+test("goes back to the default microphone after the chosen one wasn't available", async () => {
+  const { user } = renderSession();
+  await start(user);
+  vi.mocked(startMicrophone).mockRejectedValueOnce(new DOMException("unplugged", "NotFoundError"));
+  await user.selectOptions(screen.getByRole("combobox"), "headset");
+  await screen.findByRole("status");
+
+  expect(screen.getByRole("combobox")).toHaveValue("");
+  await start(user);
+  expect(startMicrophone).toHaveBeenLastCalledWith(expect.objectContaining({ deviceId: undefined }));
+});
+
 test("suggests another microphone when low notes read unstably, until the next attempt", async () => {
   const { user } = renderSession();
   await start(user);
