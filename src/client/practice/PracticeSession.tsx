@@ -70,7 +70,16 @@ export default function PracticeSession({ exerciseId, musicXml, saveAttempt }: P
     // Cleared first: if the new device fails, nothing should stop the old session a second time.
     microphoneRef.current = null;
     microphoneRef.current = await startMicrophone({ deviceId: selectedDeviceId, onFrame: handleFrame });
-    setDevices(await listInputDevices());
+    await refreshDevices();
+  }
+
+  /** The device list is a convenience: failing to refresh it must not end an attempt on a working microphone. */
+  async function refreshDevices() {
+    try {
+      setDevices(await listInputDevices());
+    } catch {
+      // Keep the list already shown.
+    }
   }
 
   /** Volume and pitch history belong to one input device; a new device starts from nothing. */
