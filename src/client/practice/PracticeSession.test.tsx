@@ -67,8 +67,8 @@ function played(correct: boolean, playedWrittenMidi: number): Partial<TestFrame>
 }
 
 function renderSession(saveAttempt = vi.fn(async () => {})) {
-  render(<PracticeSession exerciseId="ex-1" musicXml="<score/>" saveAttempt={saveAttempt} />);
-  return { saveAttempt, user: userEvent.setup() };
+  const { unmount } = render(<PracticeSession exerciseId="ex-1" musicXml="<score/>" saveAttempt={saveAttempt} />);
+  return { saveAttempt, unmount, user: userEvent.setup() };
 }
 
 async function start(user: ReturnType<typeof userEvent.setup>) {
@@ -244,6 +244,22 @@ test("goes back to the default microphone after the chosen one wasn't available"
   expect(screen.getByRole("combobox")).toHaveValue("");
   await start(user);
   expect(startMicrophone).toHaveBeenLastCalledWith(expect.objectContaining({ deviceId: undefined }));
+});
+
+test("stops a microphone that becomes ready after the page has closed", async () => {
+  const { user, unmount } = renderSession();
+  await start(user);
+  const lateStop = vi.fn();
+  let finishSwitch!: () => void;
+  vi.mocked(startMicrophone).mockImplementationOnce(async () => {
+    await new Promise<void>((resolve) => (finishSwitch = resolve));
+    return { stop: lateStop };
+  });
+  await user.selectOptions(screen.getByRole("combobox"), "headset");
+
+  unmount();
+  await act(async () => finishSwitch());
+  expect(lateStop).toHaveBeenCalledTimes(1);
 });
 
 test("suggests another microphone when low notes read unstably, until the next attempt", async () => {
